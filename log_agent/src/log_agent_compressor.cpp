@@ -1,4 +1,5 @@
 #include "log_agent.hpp"
+#include "log_agent_compressor.hpp"
 
 #include <fstream>
 #include <system_error>
@@ -13,6 +14,9 @@ constexpr char kMetaSuffix[] = ".meta";
 constexpr char kSealedState[] = "sealed";
 
 }  // namespace
+
+using log_agent_detail::CompressFileToGzip;
+using log_agent_detail::ShouldCompressFile;
 
 LogAgentResult LogAgent::RunCompressLocked() {
     std::size_t compressed = 0;
@@ -47,15 +51,15 @@ LogAgentResult LogAgent::RunCompressLocked() {
     return {true, "compression pass completed", compressed};
 }
 
-bool LogAgent::ShouldCompressFile(const LogFileEntry& file) {
+bool log_agent_detail::ShouldCompressFile(const LogFileEntry& file) {
     if (file.path.extension() == kCompressedSuffix) {
         return false;
     }
     return file.path.extension() != kMetaSuffix;
 }
 
-bool LogAgent::CompressFileToGzip(const std::filesystem::path& source_path,
-                                  bool delete_raw_after_compress) {
+bool log_agent_detail::CompressFileToGzip(const std::filesystem::path& source_path,
+                                          bool delete_raw_after_compress) {
     std::error_code ec;
     if (!std::filesystem::exists(source_path, ec) ||
         source_path.extension() == kCompressedSuffix) {

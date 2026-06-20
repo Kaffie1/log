@@ -1,4 +1,4 @@
-#include "log_service.hpp"
+#include "log_service_naming.hpp"
 
 #include <fstream>
 #include <iostream>

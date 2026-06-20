@@ -1,4 +1,6 @@
 #include "log_agent.hpp"
+#include "log_agent_recovery.hpp"
+#include "log_agent_scan.hpp"
 
 #include <fstream>
 #include <sstream>
@@ -17,6 +19,13 @@ bool IsIndexLike(const std::filesystem::path& path) {
 }
 
 }  // namespace
+
+using log_agent_detail::BuildRecoveredPath;
+using log_agent_detail::NowMicroseconds;
+using log_agent_detail::ParseFileName;
+using log_agent_detail::ParsedFileName;
+using log_agent_detail::ReadLastTimestampFromIndexFile;
+using log_agent_detail::ReadLastTimestampFromTextFile;
 
 LogAgentResult LogAgent::RunRecoverLocked() {
     std::size_t recovered = 0;
@@ -66,8 +75,8 @@ LogAgentResult LogAgent::RunRecoverLocked() {
     return {true, "recovery completed", recovered};
 }
 
-bool LogAgent::ReadLastTimestampFromTextFile(const std::filesystem::path& path,
-                                             std::int64_t* time_us) {
+bool log_agent_detail::ReadLastTimestampFromTextFile(const std::filesystem::path& path,
+                                                     std::int64_t* time_us) {
     if (time_us == nullptr) {
         return false;
     }
@@ -91,7 +100,7 @@ bool LogAgent::ReadLastTimestampFromTextFile(const std::filesystem::path& path,
     std::int64_t candidate = 0;
     for (std::size_t i = 0; i + 17 <= last_non_empty.size(); ++i) {
         const auto token = last_non_empty.substr(i, 17);
-        candidate = ParseTimestamp(token);
+        candidate = log_agent_detail::ParseTimestamp(token);
         if (candidate > 0) {
             *time_us = candidate;
             return true;
@@ -100,8 +109,8 @@ bool LogAgent::ReadLastTimestampFromTextFile(const std::filesystem::path& path,
     return false;
 }
 
-bool LogAgent::ReadLastTimestampFromIndexFile(const std::filesystem::path& path,
-                                              std::int64_t* time_us) {
+bool log_agent_detail::ReadLastTimestampFromIndexFile(const std::filesystem::path& path,
+                                                      std::int64_t* time_us) {
     if (time_us == nullptr) {
         return false;
     }
@@ -143,10 +152,10 @@ bool LogAgent::ReadLastTimestampFromIndexFile(const std::filesystem::path& path,
     }
 }
 
-std::filesystem::path LogAgent::BuildRecoveredPath(
+std::filesystem::path log_agent_detail::BuildRecoveredPath(
     const std::filesystem::path& path,
     std::int64_t start_time_us,
-    std::int64_t end_time_us) const {
+    std::int64_t end_time_us) {
     std::string name = path.filename().string();
     const bool compressed =
         name.size() > 3 && name.substr(name.size() - 3) == kCompressedSuffix;
@@ -158,7 +167,8 @@ std::filesystem::path LogAgent::BuildRecoveredPath(
     const auto extension =
         dot_pos == std::string::npos ? std::string() : name.substr(dot_pos);
     std::string recovered =
-        FormatTimestamp(start_time_us) + "-" + FormatTimestamp(end_time_us) + extension;
+        log_agent_detail::FormatTimestamp(start_time_us) + "-" +
+        log_agent_detail::FormatTimestamp(end_time_us) + extension;
     if (compressed) {
         recovered += kCompressedSuffix;
     }

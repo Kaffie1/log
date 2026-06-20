@@ -8,7 +8,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 find_package(ZLIB REQUIRED)
 
 add_library(log_l2 STATIC
-    src/log_l2.cpp
     src/ros_topic.cpp
     src/navigation_action.cpp
     src/business_data.cpp
@@ -52,8 +51,8 @@ target_link_libraries(log_l2
 
 if(catkin_FOUND)
     add_executable(l2_ros1_recorder
+        src/main.cpp
         src/ros1_recorder.cpp
-        tools/l2_ros1_recorder_main.cpp
     )
 
     target_include_directories(l2_ros1_recorder PRIVATE

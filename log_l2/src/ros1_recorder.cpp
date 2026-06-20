@@ -16,7 +16,6 @@
 #include <ros/serialization.h>
 
 #include "log_agent/include/log_agent.hpp"
-#include "log_l2.hpp"
 #include "navigation_action.hpp"
 #include "operation.hpp"
 #include "recorder.hpp"
@@ -317,12 +316,12 @@ struct L2Ros1Recorder::Impl {
     std::string current_task_id;
 
     void InitRecorder() {
-        LogL2 recorder;
         L2RecorderOptions options;
         options.root_dir = root_dir;
         options.session_id = session_id;
         options.sample_mode = ParseSampleMode(sample_mode);
-        recorder.Start(options);
+        options.topics = ToL2TopicDescriptors(DefaultReplayRosTopics());
+        l2_log::InitRecorder(options);
     }
 
     void RefreshSampleMode() {

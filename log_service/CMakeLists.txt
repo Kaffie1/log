@@ -5,8 +5,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+find_package(ZLIB REQUIRED)
+
 add_library(log_service STATIC
-    src/log_service.cpp
+    src/log_service_naming.cpp
+    src/log_service_recovery.cpp
+    src/log_service_query.cpp
+    src/log_service_package.cpp
 )
 
 target_include_directories(log_service
@@ -18,6 +23,7 @@ target_include_directories(log_service
 target_link_libraries(log_service
     PUBLIC
         log_writer
+        ZLIB::ZLIB
 )
 
 add_executable(log_service_demo

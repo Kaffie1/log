@@ -23,6 +23,8 @@
 2. 同秒多次自然分段场景下，唯一序号完整，未再出现丢数
 3. 旧 `shutdown bundle` 遗留目录已在启动前被清理，`TC22` 通过
 4. 本轮唯一未通过项为 `TC28`：异常路径场景下错误未显式暴露
+5. 运行中自然分段后的压缩已切换为由 `agent` 周期扫描完成，`TC29` 通过
+6. 时间段归档命中 active 分段时会先收口并只打包 `.gz` 段，`TC30` 通过
 
 当前遗留问题：
 
@@ -60,6 +62,8 @@
 | TC26 | 单条大消息边界 | 运行 `graceful /workspaces/log/runtime/tc_large_msg 1024 1 0 0 5000 1000 1 1 1760918400000000` | 通过。单条超阈值消息可正常写入，`unique_sequences=1` |
 | TC27 | 长时间运行稳定性 | 运行 `graceful /workspaces/log/runtime/tc_longrun 65536 1500 10 10 1024 1000 1 1 1760918400000000` | 通过。样本长稳场景下 `unique_sequences=1510`、`active_files=0`，未发现缺口 |
 | TC28 | 目录权限或异常路径 | 运行 `invalid_root /sys/kernel/log` 与 `invalid_root /dev/null/log` | 失败。均返回 `invalid_root_result=unexpected_success`，错误未显式暴露 |
+| TC29 | 运行中由 agent 压缩已收口分段 | 运行 `build_ros/log_l2/l2_runtime_validation /tmp/l2_runtime_validation_case`，观察 recorder 持续运行阶段的 agent 状态 | 通过。输出 `runtime_compressed_files=22`、`runtime_gzip_files=22`，说明自然分段后的 sealed 文件已由 agent 在运行中压缩 |
+| TC30 | 时间段归档命中 active 文件 | 复用 `build_ros/log_l2/l2_runtime_validation /tmp/l2_runtime_validation_case`，检查归档输出 | 通过。输出 `package_only_gz=1`，归档前会先收口命中的 active 分段，并且归档中仅包含 `.gz` 段 |
 
 ## 4. 关键证据
 

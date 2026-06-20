@@ -1,4 +1,5 @@
 #include "log_agent.hpp"
+#include "log_agent_scan.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -17,6 +18,13 @@ constexpr char kCompressedState[] = "compressed";
 constexpr char kCompressedSuffix[] = ".gz";
 
 }  // namespace
+
+using log_agent_detail::BuildSessionId;
+using log_agent_detail::DetermineFileState;
+using log_agent_detail::LooksLikeManagedFile;
+using log_agent_detail::NowMicroseconds;
+using log_agent_detail::ParseFileName;
+using log_agent_detail::ParsedFileName;
 
 LogAgentResult LogAgent::RunScanLocked() {
     state_.files.clear();
@@ -130,13 +138,13 @@ LogAgentResult LogAgent::RunScanLocked() {
             state_.files.size()};
 }
 
-std::int64_t LogAgent::NowMicroseconds() {
+std::int64_t log_agent_detail::NowMicroseconds() {
     return std::chrono::duration_cast<std::chrono::microseconds>(
                std::chrono::system_clock::now().time_since_epoch())
         .count();
 }
 
-std::int64_t LogAgent::ParseTimestamp(const std::string& text) {
+std::int64_t log_agent_detail::ParseTimestamp(const std::string& text) {
     std::tm tm_buf{};
     std::istringstream stream(text);
     stream >> std::get_time(&tm_buf, "%Y%m%d_%H%M%S");
@@ -146,7 +154,7 @@ std::int64_t LogAgent::ParseTimestamp(const std::string& text) {
     return static_cast<std::int64_t>(std::mktime(&tm_buf)) * 1000000LL;
 }
 
-std::string LogAgent::FormatTimestamp(std::int64_t time_us) {
+std::string log_agent_detail::FormatTimestamp(std::int64_t time_us) {
     const auto time = static_cast<std::time_t>(time_us / 1000000LL);
     std::tm tm_buf{};
     localtime_r(&time, &tm_buf);
@@ -155,8 +163,8 @@ std::string LogAgent::FormatTimestamp(std::int64_t time_us) {
     return oss.str();
 }
 
-std::string LogAgent::DetermineFileState(const ParsedFileName& parsed,
-                                         bool abnormal_marker) {
+std::string log_agent_detail::DetermineFileState(const ParsedFileName& parsed,
+                                                 bool abnormal_marker) {
     if (abnormal_marker) {
         return kAbnormalState;
     }
@@ -166,8 +174,8 @@ std::string LogAgent::DetermineFileState(const ParsedFileName& parsed,
     return kSealedState;
 }
 
-bool LogAgent::ParseFileName(const std::filesystem::path& path,
-                             ParsedFileName* parsed) {
+bool log_agent_detail::ParseFileName(const std::filesystem::path& path,
+                                     ParsedFileName* parsed) {
     if (parsed == nullptr) {
         return false;
     }
@@ -209,15 +217,15 @@ bool LogAgent::ParseFileName(const std::filesystem::path& path,
     return parsed->has_end_time;
 }
 
-std::string LogAgent::BuildSessionId(const std::filesystem::path& path,
-                                     std::int64_t start_time_us) {
+std::string log_agent_detail::BuildSessionId(const std::filesystem::path& path,
+                                             std::int64_t start_time_us) {
     if (start_time_us > 0) {
         return "session_" + FormatTimestamp(start_time_us);
     }
     return "session_" + path.parent_path().filename().string();
 }
 
-bool LogAgent::LooksLikeManagedFile(const std::filesystem::path& path) {
+bool log_agent_detail::LooksLikeManagedFile(const std::filesystem::path& path) {
     const auto name = path.filename().string();
     return name.find('-') != std::string::npos && name.find('.') != std::string::npos;
 }

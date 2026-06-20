@@ -297,8 +297,8 @@ flowchart TB
 
 说明：
 
-1. 当前实现中 `LogL2` 对外只保留 `Start()` 启动接口
-2. `topics` 字段在结构体中保留，但启动时会被内部默认 topic 清单覆盖
+1. 当前实现中由 `L2Ros1Recorder` 直接组装默认 topic 清单并调用 `l2_log::InitRecorder()`
+2. `topics` 字段在结构体中保留，但 ROS1 录制入口启动时会被内部默认 topic 清单覆盖
 
 ### 7.3 原始消息
 

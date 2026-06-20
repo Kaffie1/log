@@ -1,14 +1,16 @@
 #include "log_agent.hpp"
+#include "log_agent_cleanup.hpp"
+#include "log_agent_scan.hpp"
 
 #include <system_error>
 
 namespace naviai::log {
 namespace {
 
-constexpr char kActiveState[] = "active";
-constexpr char kAbnormalState[] = "abnormal";
-
 }  // namespace
+
+using log_agent_detail::NowMicroseconds;
+using log_agent_detail::ShouldCleanupFile;
 
 LogAgentResult LogAgent::RunCleanupLocked(bool dry_run) {
     const auto now_us = NowMicroseconds();
@@ -16,8 +18,7 @@ LogAgentResult LogAgent::RunCleanupLocked(bool dry_run) {
     std::size_t affected = 0;
 
     for (const auto& file : state_.files) {
-        if (file.file_state == kActiveState || file.file_state == kAbnormalState ||
-            file.end_time_us <= 0 || file.end_time_us > cutoff_us) {
+        if (!ShouldCleanupFile(file, cutoff_us)) {
             continue;
         }
 
@@ -36,6 +37,11 @@ LogAgentResult LogAgent::RunCleanupLocked(bool dry_run) {
         RunScanLocked();
     }
     return {true, dry_run ? "cleanup dry-run completed" : "cleanup completed", affected};
+}
+
+bool log_agent_detail::ShouldCleanupFile(const LogFileEntry& file, std::int64_t cutoff_us) {
+    return file.file_state != "active" && file.file_state != "abnormal" &&
+           file.end_time_us > 0 && file.end_time_us <= cutoff_us;
 }
 
 }  // namespace naviai::log

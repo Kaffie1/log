@@ -14,7 +14,7 @@
 
 #include "business_data.hpp"
 #include "large_data.hpp"
-#include "log_service.hpp"
+#include "log_service_naming.hpp"
 #include "recorder.hpp"
 #include "static_data.hpp"
 
@@ -37,41 +37,6 @@ struct SegmentFileGroup {
     int64_t start_time_us{0};
     int64_t end_time_us{0};
 };
-
-bool CompressFileToGzip(const std::filesystem::path& source_path) {
-    std::error_code ec;
-    if (source_path.empty() || !std::filesystem::exists(source_path, ec) ||
-        source_path.extension() == ".gz") {
-        return false;
-    }
-
-    std::ifstream input(source_path, std::ios::binary);
-    if (!input.is_open()) {
-        return false;
-    }
-
-    const auto gzip_path = source_path.string() + ".gz";
-    gzFile output = gzopen(gzip_path.c_str(), "wb");
-    if (output == nullptr) {
-        return false;
-    }
-
-    char buffer[8192];
-    while (input.good()) {
-        input.read(buffer, sizeof(buffer));
-        const auto bytes = static_cast<unsigned int>(input.gcount());
-        if (bytes > 0 && gzwrite(output, buffer, bytes) != static_cast<int>(bytes)) {
-            gzclose(output);
-            std::filesystem::remove(gzip_path, ec);
-            return false;
-        }
-    }
-
-    gzclose(output);
-    input.close();
-    std::filesystem::remove(source_path, ec);
-    return !ec;
-}
 
 bool ReadSegmentTimeRangeFromIndex(const std::filesystem::path& index_path,
                                    int64_t* start_message_time_us,
@@ -400,6 +365,56 @@ bool OverlapsRange(const SegmentFileGroup& group,
     return group.start_time_us <= end_time_us && group.end_time_us >= start_time_us;
 }
 
+std::vector<SegmentFileGroup> SelectPackageGroups(
+    const std::vector<SegmentFileGroup>& groups,
+    const L2PackageOptions& options) {
+    std::vector<SegmentFileGroup> selected_groups;
+    std::optional<SegmentFileGroup> selected_map_group;
+    for (const auto& group : groups) {
+        const auto relative_text = group.relative_data_path.generic_string();
+        const bool is_map_group =
+            relative_text.rfind("static_data/", 0) == 0 ||
+            group.relative_index_path.generic_string().rfind("static_data/", 0) == 0;
+        if (is_map_group) {
+            if (!selected_map_group.has_value() ||
+                group.start_time_us >= selected_map_group->start_time_us) {
+                selected_map_group = group;
+            }
+            continue;
+        }
+        if (OverlapsRange(group, options.start_time_us, options.end_time_us)) {
+            selected_groups.push_back(group);
+        }
+    }
+
+    if (selected_map_group.has_value()) {
+        selected_groups.push_back(*selected_map_group);
+    }
+    return selected_groups;
+}
+
+void RemoveActiveGroups(const LogService& service,
+                        std::vector<SegmentFileGroup>* groups) {
+    if (groups == nullptr) {
+        return;
+    }
+    groups->erase(
+        std::remove_if(groups->begin(), groups->end(), [&](const SegmentFileGroup& group) {
+            return service.IsActiveFilePath(group.data_path) ||
+                   service.IsActiveFilePath(group.index_path);
+        }),
+        groups->end());
+}
+
+bool IsCurrentRecorderRoot(const std::filesystem::path& root_dir) {
+    auto& state = State();
+    if (!state.initialized) {
+        return false;
+    }
+    return std::filesystem::path(state.options.root_dir).lexically_normal() ==
+           root_dir.lexically_normal();
+}
+
 std::string BuildDefaultArchiveName(int64_t start_time_us, int64_t end_time_us) {
     return "l2_" + FormatSegmentTime(start_time_us) + "-" +
            FormatSegmentTime(end_time_us) + ".tar.xz";
@@ -590,30 +605,43 @@ std::string PackageRecords(const L2PackageOptions& options) {
     }
 
     const auto root_dir = std::filesystem::path(options.root_dir);
+    LogService service(root_dir);
     std::vector<SegmentFileGroup> groups;
     CollectSegmentGroups(root_dir, &groups);
 
-    std::vector<SegmentFileGroup> selected_groups;
-    std::optional<SegmentFileGroup> selected_map_group;
-    for (const auto& group : groups) {
-        const auto relative_text = group.relative_data_path.generic_string();
-        const bool is_map_group =
-            relative_text.rfind("static_data/", 0) == 0 ||
-            group.relative_index_path.generic_string().rfind("static_data/", 0) == 0;
-        if (is_map_group) {
-            if (!selected_map_group.has_value() ||
-                group.start_time_us >= selected_map_group->start_time_us) {
-                selected_map_group = group;
-            }
-            continue;
-        }
-        if (OverlapsRange(group, options.start_time_us, options.end_time_us)) {
-            selected_groups.push_back(group);
-        }
+    L2PackageOptions effective_options = options;
+    auto selected_groups = SelectPackageGroups(groups, effective_options);
+    std::vector<std::filesystem::path> selected_paths;
+    selected_paths.reserve(selected_groups.size() * 2);
+    for (const auto& group : selected_groups) {
+        selected_paths.push_back(group.data_path);
+        selected_paths.push_back(group.index_path);
     }
 
-    if (selected_map_group.has_value()) {
-        selected_groups.push_back(*selected_map_group);
+    auto preparation = service.PrepareFilesForPackaging(selected_paths);
+    if (preparation.has_active_files) {
+        if (!IsCurrentRecorderRoot(root_dir)) {
+            throw std::runtime_error(
+                "matched active L2 segments owned by another running recorder; "
+                "cannot safely package them");
+        }
+        effective_options.end_time_us =
+            std::min<std::int64_t>(effective_options.end_time_us, NowTimestampUs());
+        ForceRotateActiveSegments();
+        groups.clear();
+        CollectSegmentGroups(root_dir, &groups);
+        selected_groups = SelectPackageGroups(groups, effective_options);
+        RemoveActiveGroups(service, &selected_groups);
+        selected_paths.clear();
+        selected_paths.reserve(selected_groups.size() * 2);
+        for (const auto& group : selected_groups) {
+            selected_paths.push_back(group.data_path);
+            selected_paths.push_back(group.index_path);
+        }
+        preparation = service.PrepareFilesForPackaging(selected_paths);
+    }
+    if (!preparation.success) {
+        throw std::runtime_error(preparation.message);
     }
 
     if (selected_groups.empty()) {
@@ -624,6 +652,14 @@ std::string PackageRecords(const L2PackageOptions& options) {
               [](const SegmentFileGroup& left, const SegmentFileGroup& right) {
                   return left.start_time_us < right.start_time_us;
               });
+    for (std::size_t index = 0; index < selected_groups.size(); ++index) {
+        selected_groups[index].data_path = preparation.prepared_files[index * 2];
+        selected_groups[index].index_path = preparation.prepared_files[index * 2 + 1];
+        selected_groups[index].relative_data_path =
+            std::filesystem::relative(selected_groups[index].data_path, root_dir);
+        selected_groups[index].relative_index_path =
+            std::filesystem::relative(selected_groups[index].index_path, root_dir);
+    }
 
     const auto temp_root = std::filesystem::temp_directory_path() /
                            ("l2_package_" + std::to_string(NowTimestampUs()));
@@ -640,7 +676,7 @@ std::string PackageRecords(const L2PackageOptions& options) {
         }
     }
 
-    WritePackageMeta(bundle_root, options, selected_groups);
+    WritePackageMeta(bundle_root, effective_options, selected_groups);
 
     const auto output_path = options.output_path.empty()
                                  ? (root_dir / BuildDefaultArchiveName(options.start_time_us,

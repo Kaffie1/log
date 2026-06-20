@@ -9,7 +9,7 @@
 
 #include <zlib.h>
 
-#include "log_service.hpp"
+#include "log_service_naming.hpp"
 #include "operation.hpp"
 
 namespace naviai::log::l2_log {
@@ -761,7 +761,9 @@ void SwitchTopicStorage(StorageRuntime* runtime, int64_t next_message_time_us) {
         return;
     }
 
-    CloseTopicStorage(runtime, true, true);
+    // Runtime rotation should only seal the current segment. Compression is
+    // handled by log_agent after it detects the sealed files.
+    CloseTopicStorage(runtime, false, true);
     ++runtime->segment_index;
     runtime->current_data_size_bytes = 0;
     runtime->current_index_size_bytes = 0;

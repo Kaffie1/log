@@ -1,8 +1,11 @@
 #include "log_agent.hpp"
+#include "log_agent_scan.hpp"
 
 #include <chrono>
 
 namespace naviai::log {
+
+using log_agent_detail::NowMicroseconds;
 
 LogAgent::LogAgent(std::filesystem::path root_dir, FileGovernPolicy policy)
     : root_dir_(std::move(root_dir)), policy_(policy) {
