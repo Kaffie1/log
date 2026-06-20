@@ -1,0 +1,1888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>L2 Replay Web Viewer</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --panel-border: #e8edf5;
+      --text: #101828;
+      --muted: #667085;
+      --accent: #1677ff;
+      --accent-soft: #eff6ff;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(22, 119, 255, 0.08), transparent 28%),
+        linear-gradient(180deg, #f8fbff, #f5f7fb 55%, #f3f6fb);
+      color: var(--text);
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .app {
+      min-height: 100vh;
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+    .topbar {
+      display: grid;
+      grid-template-columns: auto auto 1fr auto auto;
+      gap: 14px;
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 14px 18px;
+      box-shadow: var(--shadow);
+    }
+    .brand {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .open-btn,
+    .play-group button,
+    .speed-group button,
+    .mini-btn {
+      border: 1px solid var(--panel-border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .open-btn:hover,
+    .play-group button:hover,
+    .speed-group button:hover,
+    .mini-btn:hover {
+      border-color: #cfd8e6;
+      transform: translateY(-1px);
+    }
+    .play-group,
+    .speed-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+    .card h2 {
+      margin: 0 0 14px 0;
+      font-size: 15px;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+    .file-chip {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .file-chip .file-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #98a2b3;
+      text-transform: uppercase;
+    }
+    .file-chip .file-path {
+      font-size: 13px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-stats {
+      display: flex;
+      justify-content: flex-end;
+      gap: 32px;
+      font-size: 14px;
+    }
+    .header-stats strong {
+      margin-right: 8px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .time-card {
+      position: relative;
+      padding-bottom: 14px;
+    }
+    .timeline-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .time-axis {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .time-axis span:last-child {
+      text-align: right;
+    }
+    .content {
+      display: grid;
+      grid-template-columns: minmax(0, 360px) minmax(0, 1fr) minmax(0, 380px);
+      gap: 12px;
+      min-height: calc(100vh - 170px);
+    }
+    .column {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      min-width: 0;
+    }
+    .main-map {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
+      min-width: 0;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      margin: 12px 0 4px;
+    }
+    .toolbar-hidden {
+      display: none;
+    }
+    canvas {
+      width: 100%;
+      height: calc(100vh - 285px);
+      min-height: 620px;
+      border-radius: 14px;
+      background:
+        linear-gradient(rgba(208, 213, 221, 0.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(208, 213, 221, 0.35) 1px, transparent 1px),
+        linear-gradient(180deg, #ffffff, #fdfefe);
+      background-size: 52px 52px, 52px 52px, auto;
+      border: 1px solid var(--panel-border);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+      cursor: grab;
+    }
+    .event-list,
+    .kv-list,
+    .code-list {
+      display: grid;
+      gap: 0;
+    }
+    .scroll-panel {
+      width: 100%;
+      min-width: 0;
+      max-height: 280px;
+      overflow-x: auto;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .scroll-panel > * {
+      min-width: max-content;
+    }
+    .scroll-panel.tall {
+      max-height: 420px;
+    }
+    .scroll-panel::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    .scroll-panel::-webkit-scrollbar-track {
+      background: #eef2f7;
+      border-radius: 999px;
+    }
+    .scroll-panel::-webkit-scrollbar-thumb {
+      background: #c2cbd8;
+      border-radius: 999px;
+      border: 2px solid #eef2f7;
+    }
+    .scroll-panel::-webkit-scrollbar-thumb:hover {
+      background: #98a2b3;
+    }
+    .event-item,
+    .code-row {
+      display: grid;
+      grid-template-columns: auto 118px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 0;
+      border-top: 1px solid #f0f2f6;
+      font-size: 14px;
+      min-width: max-content;
+      white-space: nowrap;
+    }
+    .event-item {
+      cursor: pointer;
+    }
+    .event-item:first-child,
+    .code-row:first-child {
+      border-top: 0;
+    }
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .dot.ok { background: var(--ok); }
+    .dot.warn { background: var(--warn); }
+    .dot.danger { background: var(--danger); }
+    .dot.info { background: var(--accent); }
+    .table {
+      width: 100%;
+      min-width: 520px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .table th,
+    .table td {
+      padding: 10px 8px;
+      border-top: 1px solid #f0f2f6;
+      text-align: left;
+      vertical-align: middle;
+    }
+    .table th {
+      color: var(--muted);
+      font-weight: 600;
+      background: #fafbfc;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 52px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .badge.ok {
+      color: #15803d;
+      background: #dcfce7;
+    }
+    .badge.warn {
+      color: #b45309;
+      background: #fef3c7;
+    }
+    .badge.info {
+      color: #1d4ed8;
+      background: #dbeafe;
+    }
+    .status-section {
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+    }
+    .status-section.scroll-panel {
+      display: block;
+    }
+    .stat-block {
+      display: grid;
+      gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eef2f6;
+      min-width: max-content;
+    }
+    .stat-block:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+    .stat-title {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      font-size: 14px;
+      align-items: center;
+      min-width: max-content;
+      white-space: nowrap;
+    }
+    .stat-grid .label {
+      color: var(--text);
+    }
+    .stat-grid .value {
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+    }
+    .stat-grid .unit {
+      color: var(--muted);
+      min-width: 34px;
+      text-align: left;
+    }
+    .task-metric {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      font-size: 15px;
+      padding: 6px 0;
+      min-width: max-content;
+      white-space: nowrap;
+    }
+    .task-metric .big {
+      font-size: 34px;
+      font-weight: 700;
+      color: var(--ok);
+      line-height: 1;
+    }
+    .status-line {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+      min-width: max-content;
+      white-space: nowrap;
+    }
+    .primary {
+      background: linear-gradient(180deg, #2687ff, #1677ff);
+      color: #fff;
+      border-color: #1677ff;
+      box-shadow: 0 10px 22px rgba(22, 119, 255, 0.18);
+    }
+    .primary:hover {
+      border-color: #1677ff;
+    }
+    .speed-group button.active,
+    .mini-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .muted-panel {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    @media (max-width: 1360px) {
+      .content {
+        grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+      }
+      .column.right {
+        grid-column: 1 / -1;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 1100px) {
+      .topbar {
+        grid-template-columns: 1fr;
+        justify-items: start;
+      }
+      .header-stats {
+        justify-content: start;
+        flex-wrap: wrap;
+        gap: 14px;
+      }
+      .content {
+        grid-template-columns: 1fr;
+      }
+      .column.right {
+        grid-template-columns: 1fr;
+      }
+      canvas {
+        min-height: 460px;
+        height: 62vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">日志回放分析平台</div>
+      <button class="open-btn" type="button" id="selectLogBtn">选择日志</button>
+      <input type="file" id="logPickerInput" class="toolbar-hidden" accept=".tar.xz,.txz,application/x-xz" />
+      <div class="file-chip">
+        <div class="file-label">当前日志</div>
+        <div class="file-path" id="rootPath">-</div>
+      </div>
+      <div class="play-group">
+        <button class="primary" id="playBtn">播放</button>
+        <button id="resetBtn">重置</button>
+        <button id="fitBtn">适配地图</button>
+        <button class="mini-btn" id="prevBtn">上一帧</button>
+        <button class="mini-btn" id="nextBtn">下一帧</button>
+      </div>
+      <div class="play-group">
+        <div class="speed-group">
+          <button class="active" id="speed1Btn">1x</button>
+          <button id="speed2Btn">2x</button>
+          <button id="speed4Btn">4x</button>
+          <button id="speed8Btn">8x</button>
+          <button id="speed16Btn">16x</button>
+          <button id="speed32Btn">32x</button>
+          <button id="speed64Btn">64x</button>
+          <button class="mini-btn" id="slowerBtn">-</button>
+          <button class="mini-btn" id="fasterBtn">+</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="header-stats">
+          <div><strong>当前时间:</strong><span id="currentTimeText">-</span></div>
+          <div><strong>日志时长:</strong><span id="durationText">-</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card time-card">
+      <div class="timeline-title">时间轴</div>
+      <div id="statusBar" class="muted-panel">Loading replay data...</div>
+      <input type="range" min="0" max="0" value="0" id="timeSlider" />
+      <div class="time-axis">
+        <span id="tick0">--:--:--</span>
+        <span id="tick1">--:--:--</span>
+        <span id="tick2">--:--:--</span>
+        <span id="tick3">--:--:--</span>
+        <span id="tick4">--:--:--</span>
+        <span id="tick5">--:--:--</span>
+      </div>
+    </div>
+    <div class="content">
+      <div class="column">
+        <div class="card">
+          <h2>事件列表</h2>
+          <div class="event-list scroll-panel tall" id="eventList">Loading...</div>
+        </div>
+        <div class="card">
+          <h2>算法状态列表</h2>
+          <div class="scroll-panel" id="algorithmTable">Loading...</div>
+        </div>
+        <div class="card">
+          <h2>错误码列表</h2>
+          <div class="code-list scroll-panel" id="errorCodeList">Loading...</div>
+        </div>
+      </div>
+      <div class="card main-map">
+        <h2>地图预览 <button class="mini-btn" id="loadLocalMapBtn" style="margin-left:10px;padding:4px 10px;font-size:12px;">加载 Local Map</button> <span id="localMapStatus" style="font-size:12px;color:#667085;font-weight:500;">-</span></h2>
+        <canvas id="viewerCanvas" width="1400" height="900"></canvas>
+      </div>
+      <div class="column right">
+        <div class="card">
+          <h2>机器人实时状态</h2>
+          <div class="status-section" id="robotStatePanel">Loading...</div>
+        </div>
+        <div class="card">
+          <h2>导航任务</h2>
+          <div class="status-section" id="navTaskPanel">Loading...</div>
+        </div>
+      </div>
+    </div>
+    <div class="toolbar-hidden">
+      <div id="frameCount"></div>
+      <div id="timeSpan"></div>
+      <div id="navInfo"></div>
+      <div id="taskInfo"></div>
+      <div id="poseInfo"></div>
+      <div class="card">
+        <div id="locationInfo"></div>
+        <div id="perceptionInfo"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const state = {
+      selectedFileName: "",
+      frames: [],
+      index: 0,
+      playing: false,
+      speed: 1.0,
+      zoom: 1.0,
+      panX: 0.0,
+      panY: 0.0,
+      staticMap: null,
+      dataReady: false,
+      loadingComplete: false,
+      metaFetched: false,
+      fetchingFrames: false,
+      latestPose: null,
+      latestMap: null,
+      latestLocalMap: null,
+      latestGoal: null,
+      latestLocationCode: null,
+      latestPerceptionCode: null,
+      latestNavigationCode: null,
+      latestAgvState: null,
+      latestCmdVel: null,
+      latestNavFeedback: null,
+      latestNavResult: null,
+      latestGoalTimeUs: null,
+      latestNavResultTimeUs: null,
+      localMapRequests: new Set(),
+      loadVersion: 0,
+      trajectory: [],
+      fullStartTimeUs: null,
+      fullEndTimeUs: null,
+      fullDurationUs: null,
+      fitToMap: true,
+      dragging: false,
+      dragMoved: false,
+      holdTimer: null,
+      holdInterval: null,
+      dragLastX: 0,
+      dragLastY: 0,
+    };
+
+    const VEHICLE_FOOTPRINT = {
+      length: 0.7,
+      width: 0.65,
+    };
+
+    const ERROR_CODE_REFERENCE = {
+      "导航": {
+        "10000": { solution: "-" },
+        "10001": { solution: "-" },
+        "10002": { solution: "-" },
+        "10003": { solution: "-" },
+        "10004": { solution: "-" },
+        "10005": { solution: "-" },
+        "10006": { solution: "-" },
+        "10007": { solution: "-" },
+        "10008": { solution: "-" },
+        "10009": { solution: "-" },
+        "20001": { solution: "-" },
+        "20002": { solution: "-" },
+        "20003": { solution: "-" },
+      },
+      "定位": {
+        "10000": {
+          solution: "检查点云与IMU话题是否正常；检查点云数量是否约20000；必要时重启传感器驱动",
+        },
+        "10001": {
+          solution: "检查地图路径和地图名是否正确，必要时切换正确地图",
+        },
+        "10002": {
+          solution: "重启里程定位服务",
+        },
+        "20000": {
+          solution: "确保机器人处于地图区域，且环境可视条件良好、几何特征充分",
+        },
+        "20001": {
+          solution: "离开退化区域，减少对LiDAR的遮挡",
+        },
+      },
+      "建图": {
+        "10000": {
+          solution: "设置正确建图参数，确保 z_ceil > z_floor",
+        },
+        "10001": {
+          solution: "检查点云和IMU话题；检查点数是否正常；必要时重启传感器驱动",
+        },
+        "10002": {
+          solution: "检查datasets路径映射；如中止后处理可重新建图；扫描30s以上并形成回环；检查pcd文件是否正常生成",
+        },
+        "20001": {
+          solution: "延长采集时间",
+        },
+      },
+      "感知": {
+        "10000": {
+          solution: "检查环境变量 PERCEPTION_ROBOT_MODEL 或启动脚本中的设备类型参数",
+        },
+        "10001": {
+          solution: "检查 json 配置文件路径",
+        },
+        "10002": {
+          solution: "检查 yaml 配置文件路径",
+        },
+        "10003": {
+          solution: "检查 realsense 分辨率是否为 640x480，或增大 estimate_pts_num 后重启",
+        },
+        "20000": {
+          solution: "检查传感器是否正常，或检查 point cloud 配置是否开启",
+        },
+        "20001": {
+          solution: "等待或检查静态 tf 是否正常；检查容器内是否收到位姿；必要时多次重启排查通信问题",
+        },
+        "20002": {
+          solution: "等待或检查静态 tf 是否正常；检查容器内是否收到位姿；必要时多次重启排查通信问题",
+        },
+        "20003": {
+          solution: "检查范围过滤配置是否合理；无异常时检查传感器安装位置及安装矩阵配置",
+        },
+        "20004": {
+          solution: "检查框过滤配置是否合理；无异常时检查传感器安装位置及安装矩阵配置",
+        },
+        "20005": {
+          solution: "检查 flatten_map 过滤配置是否合理；无异常时检查传感器安装位置及安装矩阵配置",
+        },
+        "20006": {
+          solution: "检查设备当前位置是否合理，并检查 emergency_args 中过滤框与范围距离配置是否合理",
+        },
+      },
+    };
+
+    const canvas = document.getElementById("viewerCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function decodeGrid(grid) {
+      if (!grid) return null;
+      const bytes = Uint8ClampedArray.from(atob(grid.rgba_b64), c => c.charCodeAt(0));
+      const imageData = new ImageData(bytes, grid.width, grid.height);
+      const offscreen = document.createElement("canvas");
+      offscreen.width = grid.width;
+      offscreen.height = grid.height;
+      offscreen.getContext("2d").putImageData(imageData, 0, 0);
+      grid.canvas = offscreen;
+      return grid;
+    }
+
+    function pad2(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function pad3(value) {
+      return String(value).padStart(3, "0");
+    }
+
+    function formatDisplayTime(timeUs) {
+      const date = new Date(timeUs / 1000);
+      return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ` +
+        `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}.` +
+        `${pad3(date.getMilliseconds())}`;
+    }
+
+    function formatShortTime(timeUs) {
+      const date = new Date(timeUs / 1000);
+      return `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}.${pad3(date.getMilliseconds())}`;
+    }
+
+    function formatAxisTime(timeUs) {
+      const date = new Date(timeUs / 1000);
+      return `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
+    }
+
+    function resetReplayState() {
+      state.loadVersion += 1;
+      state.frames = [];
+      state.index = 0;
+      state.playing = false;
+      state.staticMap = null;
+      state.dataReady = false;
+      state.loadingComplete = false;
+      state.metaFetched = false;
+      state.fetchingFrames = false;
+      state.latestPose = null;
+      state.latestMap = null;
+      state.latestLocalMap = null;
+      state.latestGoal = null;
+      state.latestLocationCode = null;
+      state.latestPerceptionCode = null;
+      state.latestNavigationCode = null;
+      state.latestAgvState = null;
+      state.latestCmdVel = null;
+      state.latestNavFeedback = null;
+      state.latestNavResult = null;
+      state.latestGoalTimeUs = null;
+      state.latestNavResultTimeUs = null;
+      state.localMapRequests = new Set();
+      state.trajectory = [];
+      state.fullStartTimeUs = null;
+      state.fullEndTimeUs = null;
+      state.fullDurationUs = null;
+      document.getElementById("rootPath").textContent = state.selectedFileName || "-";
+      document.getElementById("frameCount").textContent = "-";
+      document.getElementById("timeSpan").textContent = "-";
+      document.getElementById("localMapStatus").textContent = "-";
+      document.getElementById("statusBar").textContent = "Loading replay data...";
+      const slider = document.getElementById("timeSlider");
+      slider.value = 0;
+      slider.max = 0;
+      render();
+      updateSidebar();
+    }
+
+    function formatBytes(bytes) {
+      if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+      const units = ["B", "KB", "MB", "GB"];
+      let value = bytes;
+      let unitIndex = 0;
+      while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex += 1;
+      }
+      const precision = value >= 100 || unitIndex === 0 ? 0 : 1;
+      return `${value.toFixed(precision)} ${units[unitIndex]}`;
+    }
+
+    function uploadReplayArchive(file) {
+      return new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        request.open("POST", "/api/load");
+        request.setRequestHeader("Content-Type", "application/octet-stream");
+        request.setRequestHeader("X-File-Name", encodeURIComponent(file.name));
+        request.upload.onprogress = event => {
+          if (!event.lengthComputable) {
+            document.getElementById("statusBar").textContent =
+              `Uploading replay archive... ${formatBytes(event.loaded)}`;
+            return;
+          }
+          const percent = Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100)));
+          document.getElementById("statusBar").textContent =
+            `Uploading replay archive... ${percent}% (${formatBytes(event.loaded)} / ${formatBytes(event.total)})`;
+        };
+        request.onload = () => {
+          if (request.status < 200 || request.status >= 300) {
+            reject(new Error(request.responseText || "Failed to upload replay archive"));
+            return;
+          }
+          try {
+            resolve(JSON.parse(request.responseText));
+          } catch (error) {
+            reject(new Error("Invalid upload response"));
+          }
+        };
+        request.onerror = () => reject(new Error("Replay archive upload failed"));
+        request.onabort = () => reject(new Error("Replay archive upload canceled"));
+        request.send(file);
+      });
+    }
+
+    function formatDurationUs(durationUs) {
+      if (!Number.isFinite(durationUs) || durationUs < 0) return "-";
+      const totalSeconds = Math.floor(durationUs / 1000000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      return `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function getFileName(path) {
+      if (!path) return "-";
+      const normalized = String(path).replace(/\\\\/g, "/");
+      const segments = normalized.split("/");
+      return segments[segments.length - 1] || normalized;
+    }
+
+    function updateSpeedButtons() {
+      [1, 2, 4, 8, 16, 32, 64].forEach(speed => {
+        const button = document.getElementById(`speed${speed}Btn`);
+        if (!button) return;
+        button.classList.toggle("active", Math.abs(state.speed - speed) < 0.001);
+      });
+    }
+
+    function setPlaybackSpeed(speed) {
+      if (!state.dataReady) return;
+      state.speed = speed;
+      updateSpeedButtons();
+      updateSidebar();
+    }
+
+    function updateTimeAxis() {
+      if (!state.frames.length) return;
+      const start = state.fullStartTimeUs !== null ? state.fullStartTimeUs : state.frames[0].time_us;
+      const end = state.fullEndTimeUs !== null ? state.fullEndTimeUs : state.frames[state.frames.length - 1].time_us;
+      const span = Math.max(1, end - start);
+      for (let i = 0; i < 6; i += 1) {
+        const ratio = i / 5;
+        const value = Math.round(start + span * ratio);
+        document.getElementById(`tick${i}`).textContent = formatAxisTime(value);
+      }
+    }
+
+    function applyMeta(meta) {
+      document.getElementById("rootPath").textContent = state.selectedFileName || getFileName(meta.root);
+      document.getElementById("timeSpan").textContent = meta.time_span;
+      state.fullStartTimeUs = Number.isFinite(meta.start_time_us) ? meta.start_time_us : state.fullStartTimeUs;
+      state.fullEndTimeUs = Number.isFinite(meta.end_time_us) ? meta.end_time_us : state.fullEndTimeUs;
+      state.fullDurationUs = Number.isFinite(meta.duration_us) ? meta.duration_us : state.fullDurationUs;
+      document.getElementById("frameCount").textContent = meta.complete
+        ? String(meta.available_frames)
+        : `${meta.available_frames}+`;
+      if (meta.static_map) {
+        state.staticMap = decodeGrid(meta.static_map);
+        state.latestMap = state.staticMap;
+      }
+      state.loadingComplete = Boolean(meta.complete);
+    }
+
+    function appendFrames(start, frames) {
+      if (frames.length === 0) return;
+      frames.forEach((frame, offset) => {
+        const normalized = {
+          time_us: frame.time_us,
+          message_time_us: frame.message_time_us,
+          pose: frame.pose,
+          local_map: decodeGrid(frame.local_map),
+          goal: frame.goal,
+          location_code: frame.location_code,
+          perception_code: frame.perception_code,
+          navigation_code: frame.navigation_code,
+          agv_state: frame.agv_state,
+          cmd_vel: frame.cmd_vel,
+          nav_feedback: frame.nav_feedback,
+          nav_result: frame.nav_result,
+        };
+        const index = start + offset;
+        if (index < state.frames.length) {
+          const existing = state.frames[index];
+          state.frames[index] = {
+            ...existing,
+            ...normalized,
+            pose: normalized.pose || existing.pose,
+            local_map: normalized.local_map || existing.local_map,
+            goal: normalized.goal || existing.goal,
+            location_code: normalized.location_code || existing.location_code,
+            perception_code: normalized.perception_code || existing.perception_code,
+            navigation_code: normalized.navigation_code || existing.navigation_code,
+            agv_state: normalized.agv_state || existing.agv_state,
+            cmd_vel: normalized.cmd_vel || existing.cmd_vel,
+            nav_feedback: normalized.nav_feedback || existing.nav_feedback,
+            nav_result: normalized.nav_result || existing.nav_result,
+          };
+        } else {
+          state.frames.push(normalized);
+        }
+      });
+      state.dataReady = state.frames.length > 0;
+      const slider = document.getElementById("timeSlider");
+      slider.max = Math.max(0, state.frames.length - 1);
+      if (start === 0 && state.frames.length === frames.length) {
+        slider.value = 0;
+        rebuildState(0);
+        render();
+      } else {
+        rebuildState(Math.min(state.index, state.frames.length - 1));
+        render();
+      }
+      updateTimeAxis();
+    }
+
+    function rebuildState(index) {
+      state.index = index;
+      const currentFrame = state.frames[index] || null;
+      state.latestPose = null;
+      state.latestMap = state.staticMap;
+      state.latestLocalMap = currentFrame && currentFrame.local_map ? currentFrame.local_map : null;
+      state.latestGoal = null;
+      state.latestLocationCode = null;
+      state.latestPerceptionCode = null;
+      state.latestNavigationCode = null;
+      state.latestAgvState = null;
+      state.latestCmdVel = null;
+      state.latestNavFeedback = null;
+      state.latestNavResult = null;
+      state.latestGoalTimeUs = null;
+      state.latestNavResultTimeUs = null;
+      state.trajectory = [];
+      for (let i = 0; i <= index; i += 1) {
+        const frame = state.frames[i];
+        if (frame.pose) {
+          state.latestPose = frame.pose;
+          state.trajectory.push([frame.pose.x, frame.pose.y]);
+        }
+        if (frame.goal) {
+          state.latestGoal = frame.goal;
+          state.latestGoalTimeUs = frame.time_us;
+        }
+        if (frame.location_code) state.latestLocationCode = frame.location_code;
+        if (frame.perception_code) state.latestPerceptionCode = frame.perception_code;
+        if (frame.navigation_code) state.latestNavigationCode = frame.navigation_code;
+        if (frame.agv_state) state.latestAgvState = frame.agv_state;
+        if (frame.cmd_vel) state.latestCmdVel = frame.cmd_vel;
+        if (frame.nav_feedback) state.latestNavFeedback = frame.nav_feedback;
+        if (frame.nav_result) {
+          state.latestNavResult = frame.nav_result;
+          state.latestNavResultTimeUs = frame.time_us;
+        }
+      }
+      updateSidebar();
+    }
+
+    function formatTopicState(title, info) {
+      if (!info) {
+        return "None";
+      }
+      const lines = [];
+      if (info.task_id) lines.push(`task=${info.task_id}`);
+      if (info.state_name) lines.push(`state=${info.state_name}`);
+      if (info.status_code !== undefined) lines.push(`code=${info.status_code}`);
+      if (info.status_name) lines.push(`status=${info.status_name}`);
+      if (info.fault_count !== undefined) lines.push(`faults=${info.fault_count}`);
+      if (info.primary_fault_code && info.primary_fault_code !== "0") {
+        lines.push(`fault_code=${info.primary_fault_code}`);
+      }
+      if (info.primary_fault_msg) lines.push(`fault_msg=${info.primary_fault_msg}`);
+      if (info.cause_count !== undefined) lines.push(`causes=${info.cause_count}`);
+      if (info.primary_cause_code && info.primary_cause_code !== "0") {
+        lines.push(`cause_code=${info.primary_cause_code}`);
+      }
+      if (info.primary_cause_msg) lines.push(`cause_msg=${info.primary_cause_msg}`);
+      return lines.join("<br>") || "None";
+    }
+
+    function buildEventEntries() {
+      const entries = [];
+      const seenStates = {
+        navResult: null,
+        navFeedback: null,
+        navGoal: null,
+        location: null,
+        perception: null,
+        navigation: null,
+      };
+      const pushIfChanged = (key, signature, entry) => {
+        if (signature === null || seenStates[key] === signature) return;
+        seenStates[key] = signature;
+        entries.push(entry);
+      };
+      for (let i = 0; i < state.frames.length; i += 1) {
+        const frame = state.frames[i];
+        if (frame.nav_result) {
+          const resultState = frame.nav_result.state_name || "-";
+          pushIfChanged("navResult", resultState, {
+            level: "ok",
+            time: frame.time_us,
+            frameIndex: i,
+            text: `任务结果 ${resultState}`,
+          });
+        }
+        if (frame.nav_feedback) {
+          const name = frame.nav_feedback.state_name || "反馈";
+          const level = /fail|error|abort/i.test(name) ? "danger" : /arriv|cancel/i.test(name) ? "warn" : "ok";
+          pushIfChanged("navFeedback", name, {
+            level,
+            time: frame.time_us,
+            frameIndex: i,
+            text: `导航反馈 ${name}`,
+          });
+        }
+        if (frame.goal) {
+          const goalState = `${frame.goal.task_id || ""}|${frame.goal.state_name || ""}`;
+          pushIfChanged("navGoal", goalState, {
+            level: "info",
+            time: frame.time_us,
+            frameIndex: i,
+            text: `开始导航任务 ${frame.goal.task_id || ""}`.trim(),
+          });
+        }
+        if (frame.location_code) {
+          const bad = frame.location_code.primary_fault_code && frame.location_code.primary_fault_code !== "0";
+          const locationState = bad
+            ? `fault:${frame.location_code.primary_fault_code}`
+            : `normal:${frame.location_code.status_code ?? "0"}`;
+          pushIfChanged("location", locationState, {
+            level: bad ? "danger" : "ok",
+            time: frame.time_us,
+            frameIndex: i,
+            text: bad
+              ? `定位异常 ${frame.location_code.primary_fault_code || ""}`.trim()
+              : "定位恢复",
+          });
+        }
+        if (frame.perception_code) {
+          const bad = frame.perception_code.primary_fault_code && frame.perception_code.primary_fault_code !== "0";
+          const perceptionState = bad
+            ? `fault:${frame.perception_code.primary_fault_code}`
+            : `normal:${frame.perception_code.status_code ?? "0"}`;
+          pushIfChanged("perception", perceptionState, {
+            level: bad ? "warn" : "ok",
+            time: frame.time_us,
+            frameIndex: i,
+            text: bad
+              ? `感知异常 ${frame.perception_code.primary_fault_code || ""}`.trim()
+              : "感知恢复",
+          });
+        }
+        if (frame.navigation_code) {
+          const bad = frame.navigation_code.primary_fault_code && frame.navigation_code.primary_fault_code !== "0";
+          const navigationState = bad
+            ? `fault:${frame.navigation_code.primary_fault_code}`
+            : `normal:${frame.navigation_code.status_code ?? "0"}`;
+          pushIfChanged("navigation", navigationState, {
+            level: bad ? "warn" : "ok",
+            time: frame.time_us,
+            frameIndex: i,
+            text: bad
+              ? `导航异常 ${frame.navigation_code.primary_fault_code || ""}`.trim()
+              : `导航状态 ${frame.navigation_code.status_name || "正常"}`,
+          });
+        }
+      }
+      if (!entries.length && state.frames.length) {
+        entries.push({ level: "ok", time: state.frames[0].time_us, frameIndex: 0, text: "系统启动" });
+      }
+      entries.sort((left, right) => left.time - right.time);
+      return entries;
+    }
+
+    function renderEventList() {
+      const container = document.getElementById("eventList");
+      if (!state.dataReady || !state.frames.length) {
+        container.innerHTML = "Loading...";
+        return;
+      }
+      const entries = buildEventEntries();
+      container.innerHTML = entries.map(entry => `
+        <div class="event-item" data-frame-index="${entry.frameIndex}">
+          <span class="dot ${entry.level}"></span>
+          <span>${escapeHtml(formatShortTime(entry.time))}</span>
+          <span>${escapeHtml(entry.text)}</span>
+        </div>
+      `).join("");
+    }
+
+    function buildAlgorithmRows() {
+      const rows = [];
+      const location = state.latestLocationCode;
+      const perception = state.latestPerceptionCode;
+      const navigation = state.latestNavigationCode;
+      rows.push({
+        module: "定位（Localization）",
+        status: location && location.primary_fault_code && location.primary_fault_code !== "0" ? "异常" : "正常",
+        badge: location && location.primary_fault_code && location.primary_fault_code !== "0" ? "warn" : "ok",
+        code: location?.status_code || "-",
+        fault: location?.primary_fault_code || "0",
+      });
+      rows.push({
+        module: "感知（Perception）",
+        status: perception && perception.primary_fault_code && perception.primary_fault_code !== "0" ? "异常" : "正常",
+        badge: perception && perception.primary_fault_code && perception.primary_fault_code !== "0" ? "warn" : "ok",
+        code: perception?.status_code || "-",
+        fault: perception?.primary_fault_code || "0",
+      });
+      rows.push({
+        module: "导航（Navigation）",
+        status: navigation && navigation.primary_fault_code && navigation.primary_fault_code !== "0" ? "异常" : (navigation?.status_name || "待机"),
+        badge: navigation && navigation.primary_fault_code && navigation.primary_fault_code !== "0" ? "warn" : /RUNNING/i.test(navigation?.status_name || "") ? "info" : "ok",
+        code: navigation?.status_code || "-",
+        fault: navigation?.primary_fault_code || "0",
+      });
+      rows.push({
+        module: "任务（Task）",
+        status: state.latestGoal?.state_name || "IDLE",
+        badge: state.latestGoal ? "info" : "ok",
+        code: state.latestGoal?.task_id || "-",
+        fault: "0",
+      });
+      return rows;
+    }
+
+    function renderAlgorithmTable() {
+      const container = document.getElementById("algorithmTable");
+      if (!state.dataReady) {
+        container.innerHTML = "Loading...";
+        return;
+      }
+      const rows = buildAlgorithmRows();
+      container.innerHTML = `
+        <table class="table">
+          <thead>
+            <tr><th>算法模块</th><th>状态</th><th>状态码</th><th>错误码</th></tr>
+          </thead>
+          <tbody>
+            ${rows.map(row => `
+              <tr>
+                <td>${escapeHtml(row.module)}</td>
+                <td><span class="badge ${row.badge}">${escapeHtml(row.status)}</span></td>
+                <td>${escapeHtml(row.code)}</td>
+                <td>${escapeHtml(row.fault)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderErrorCodeList() {
+      const container = document.getElementById("errorCodeList");
+      if (!state.dataReady) {
+        container.innerHTML = "Loading...";
+        return;
+      }
+      const rows = [];
+      const sources = [
+        { module: "定位", info: state.latestLocationCode },
+        { module: "感知", info: state.latestPerceptionCode },
+        { module: "导航", info: state.latestNavigationCode },
+        { module: "导航反馈", info: state.latestNavFeedback },
+        { module: "导航结果", info: state.latestNavResult },
+      ];
+      const normalizeErrorModule = moduleName => {
+        if (moduleName === "导航反馈" || moduleName === "导航结果") return "导航";
+        return moduleName;
+      };
+      sources.forEach(source => {
+        const info = source.info;
+        if (!info) return;
+        const referenceModule = normalizeErrorModule(source.module);
+        if (info.primary_fault_code && info.primary_fault_code !== "0") {
+          const solution = ERROR_CODE_REFERENCE[referenceModule]?.[String(info.primary_fault_code)]?.solution || "暂无处理建议";
+          rows.push({
+            rawCode: String(info.primary_fault_code),
+            module: source.module,
+            code: `${info.primary_fault_code}（${source.module}）`,
+            msg: info.primary_fault_msg || "异常",
+            solution,
+          });
+        }
+        if (info.primary_cause_code && info.primary_cause_code !== "0") {
+          const solution = ERROR_CODE_REFERENCE[referenceModule]?.[String(info.primary_cause_code)]?.solution || "暂无处理建议";
+          rows.push({
+            rawCode: String(info.primary_cause_code),
+            module: source.module,
+            code: `${info.primary_cause_code}（${source.module}）`,
+            msg: info.primary_cause_msg || "异常",
+            solution,
+          });
+        }
+      });
+      if (!rows.length) {
+        rows.push({ code: "0", msg: "当前无错误", solution: "-" });
+      }
+      container.innerHTML = rows.slice(0, 8).map(row => `
+        <div class="code-row">
+          <span class="dot ${row.code === "0" ? "ok" : "warn"}"></span>
+          <span>${escapeHtml(row.code)}</span>
+          <span>${escapeHtml(row.msg)}<br><span class="status-line">处理建议：${escapeHtml(row.solution)}</span></span>
+        </div>
+      `).join("");
+    }
+
+    function formatMetricValue(value, digits = 2) {
+      if (typeof value !== "number" || !Number.isFinite(value)) return "-";
+      return value.toFixed(digits);
+    }
+
+    function renderIssueList(items, emptyText) {
+      if (!items || items.length === 0) {
+        return `<div class="status-line">${escapeHtml(emptyText)}</div>`;
+      }
+      return items.map(item => `
+        <div class="stat-grid">
+          <span class="label">${escapeHtml(item.code || "-")}</span>
+          <span class="value">${escapeHtml(item.msg || "-")}</span>
+          <span class="unit"></span>
+        </div>
+      `).join("");
+    }
+
+    function buildRobotStatusSummary() {
+      const agvState = state.latestAgvState;
+      if (!agvState) {
+        return {
+          stateCode: "-",
+          badgeClass: "ok",
+          description: "-",
+        };
+      }
+      const stateCode = String(agvState.state ?? "-");
+      return {
+        stateCode,
+        badgeClass: stateCode !== "0" ? "info" : "ok",
+        description: agvState.description || "-",
+      };
+    }
+
+    function renderRobotState() {
+      const container = document.getElementById("robotStatePanel");
+      if (!state.dataReady || !state.frames.length) {
+        container.innerHTML = "Loading...";
+        return;
+      }
+      const pose = state.latestPose;
+      const cmdVel = state.latestCmdVel;
+      const odomVx = pose ? pose.linear_speed : 0;
+      const odomWz = pose ? pose.angular_speed : 0;
+      const cmdVx = typeof cmdVel?.linear_x === "number" ? cmdVel.linear_x : 0;
+      const cmdVy = typeof cmdVel?.linear_y === "number" ? cmdVel.linear_y : 0;
+      const cmdWz = typeof cmdVel?.angular_z === "number" ? cmdVel.angular_z : 0;
+      const batteryPercentage = typeof state.latestAgvState?.battery_percentage === "number"
+        ? state.latestAgvState.battery_percentage.toFixed(1)
+        : "-";
+      const robotStatus = buildRobotStatusSummary();
+      container.innerHTML = `
+        <div class="stat-block">
+          <div class="stat-title">机器人状态</div>
+          <div class="stat-grid"><span class="label">车体状态</span><span class="value"><span class="badge ${robotStatus.badgeClass}">${escapeHtml(robotStatus.stateCode)}</span></span><span class="unit"></span></div>
+          <div class="stat-grid"><span class="label">状态描述</span><span class="value">${escapeHtml(robotStatus.description)}</span><span class="unit"></span></div>
+          <div class="stat-grid"><span class="label">车体电量</span><span class="value">${batteryPercentage}</span><span class="unit">%</span></div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-title">当前位置（map）</div>
+          <div class="stat-grid"><span class="label">x</span><span class="value">${formatMetricValue(pose?.x)}</span><span class="unit">m</span></div>
+          <div class="stat-grid"><span class="label">y</span><span class="value">${formatMetricValue(pose?.y)}</span><span class="unit">m</span></div>
+          <div class="stat-grid"><span class="label">yaw</span><span class="value">${formatMetricValue(pose?.yaw)}</span><span class="unit">rad</span></div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-title">速度指令（cmd_vel）</div>
+          <div class="stat-grid"><span class="label">vx</span><span class="value">${cmdVx.toFixed(2)}</span><span class="unit">m/s</span></div>
+          <div class="stat-grid"><span class="label">vy</span><span class="value">${cmdVy.toFixed(2)}</span><span class="unit">m/s</span></div>
+          <div class="stat-grid"><span class="label">wz</span><span class="value">${cmdWz.toFixed(2)}</span><span class="unit">rad/s</span></div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-title">小车实时速度（odom）</div>
+          <div class="stat-grid"><span class="label">vx</span><span class="value">${odomVx.toFixed(2)}</span><span class="unit">m/s</span></div>
+          <div class="stat-grid"><span class="label">vy</span><span class="value">0.00</span><span class="unit">m/s</span></div>
+          <div class="stat-grid"><span class="label">wz</span><span class="value">${odomWz.toFixed(2)}</span><span class="unit">rad/s</span></div>
+        </div>
+      `;
+    }
+
+    function renderNavTaskPanel() {
+      const container = document.getElementById("navTaskPanel");
+      if (!state.dataReady) {
+        container.innerHTML = "Loading...";
+        return;
+      }
+      const feedback = state.latestNavFeedback;
+      const goal = state.latestGoal;
+      const result = (
+        state.latestNavResult &&
+        (!state.latestGoalTimeUs || !state.latestNavResultTimeUs || state.latestNavResultTimeUs >= state.latestGoalTimeUs)
+      ) ? state.latestNavResult : null;
+      const targetPoint = goal?.waypoints && goal.waypoints.length ? goal.waypoints[goal.waypoints.length - 1] : null;
+      container.innerHTML = `
+        <div class="stat-block">
+          <div class="stat-title">目标点</div>
+          <div class="stat-grid"><span class="label">x</span><span class="value">${formatMetricValue(targetPoint?.[0])}</span><span class="unit">m</span></div>
+          <div class="stat-grid"><span class="label">y</span><span class="value">${formatMetricValue(targetPoint?.[1])}</span><span class="unit">m</span></div>
+          <div class="stat-grid"><span class="label">yaw</span><span class="value">${formatMetricValue(targetPoint?.[2])}</span><span class="unit">rad</span></div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-title">Feedback（反馈）</div>
+          ${renderIssueList(feedback?.faults, "当前无故障")}
+          <div class="status-line">${escapeHtml(goal?.task_id || "")}</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-title">Result（结果）</div>
+          <div class="task-metric"><span>状态</span><span style="font-size:24px;font-weight:700;line-height:1;">${escapeHtml(result?.state_name || "--")}</span></div>
+          ${renderIssueList(result?.causes, "当前无原因")}
+        </div>
+      `;
+    }
+
+    function updateSidebar() {
+      if (!state.dataReady || state.frames.length === 0) {
+        document.getElementById("statusBar").textContent = "Replay data is loading...";
+        document.getElementById("localMapStatus").textContent = "等待数据";
+        document.getElementById("eventList").innerHTML = "Loading...";
+        document.getElementById("algorithmTable").innerHTML = "Loading...";
+        document.getElementById("errorCodeList").innerHTML = "Loading...";
+        document.getElementById("robotStatePanel").innerHTML = "Loading...";
+        document.getElementById("navTaskPanel").innerHTML = "Loading...";
+        document.getElementById("playBtn").textContent = state.playing ? "暂停" : "播放";
+        return;
+      }
+      const frame = state.frames[state.index];
+      const localMapStatus = state.localMapRequests.has(state.index)
+        ? "请求 local_map..."
+        : state.frames[state.index]?.local_map
+          ? "local_map 已显示"
+          : "点击按钮加载 local_map";
+      const displayTime = formatDisplayTime(frame.time_us);
+      const shortTime = formatShortTime(frame.time_us);
+      const durationUs = state.fullDurationUs !== null
+        ? Math.max(0, state.fullDurationUs)
+        : state.fullStartTimeUs !== null && state.fullEndTimeUs !== null
+          ? Math.max(0, state.fullEndTimeUs - state.fullStartTimeUs)
+        : Math.max(0, state.frames[state.frames.length - 1].time_us - state.frames[0].time_us);
+      let poseLine = "No odometry";
+      if (state.latestPose) {
+        const yawDeg = (state.latestPose.yaw * 180 / Math.PI).toFixed(1);
+        poseLine = `x=${state.latestPose.x.toFixed(2)} y=${state.latestPose.y.toFixed(2)} yaw=${yawDeg}deg`;
+      }
+      let goalLine = "None";
+      if (state.latestGoal) {
+        goalLine = `${state.latestGoal.task_id || "-"} / ${state.latestGoal.state_name}`;
+      }
+      let taskLine = "None";
+      if (state.latestNavResult) {
+        taskLine = `result=${state.latestNavResult.state_name || "-"}`;
+      } else if (state.latestNavFeedback) {
+        taskLine = `feedback=${state.latestNavFeedback.state_name || "-"}`;
+      } else if (state.latestGoal) {
+        taskLine = `goal=${state.latestGoal.state_name || "-"}`;
+      }
+      const mapLine = `global=${state.latestMap ? "yes" : "no"} local=${state.latestLocalMap ? "yes" : "no"}`;
+      const frameSuffix = state.loadingComplete ? "" : " | loading more...";
+      document.getElementById("statusBar").textContent =
+        `frame ${state.index + 1}/${state.frames.length}  |  t=${displayTime}  |  speed=${state.speed.toFixed(1)}x  |  zoom=${state.zoom.toFixed(2)}x${frameSuffix}`;
+      document.getElementById("currentTimeText").textContent = shortTime;
+      document.getElementById("durationText").textContent = formatDurationUs(durationUs);
+      document.getElementById("localMapStatus").textContent = localMapStatus;
+      document.getElementById("navInfo").innerHTML =
+        `goal=${goalLine}<br>` +
+        `feedback=${state.latestNavFeedback ? (state.latestNavFeedback.state_name || "-") : "None"}<br>` +
+        `result=${state.latestNavResult ? (state.latestNavResult.state_name || "-") : "None"}`;
+      document.getElementById("taskInfo").innerHTML =
+        `${taskLine}<br>${mapLine}`;
+      document.getElementById("poseInfo").innerHTML = poseLine;
+      document.getElementById("locationInfo").innerHTML =
+        formatTopicState("Location Code", state.latestLocationCode);
+      document.getElementById("perceptionInfo").innerHTML =
+        formatTopicState("Perception Code", state.latestPerceptionCode);
+      document.getElementById("timeSlider").value = String(state.index);
+      document.getElementById("playBtn").textContent = state.playing ? "暂停" : "播放";
+      renderEventList();
+      renderAlgorithmTable();
+      renderErrorCodeList();
+      renderRobotState();
+      renderNavTaskPanel();
+      updateSpeedButtons();
+    }
+
+    function computeView() {
+      let view;
+      if (state.fitToMap && state.latestMap) {
+        const e = state.latestMap.extent;
+        view = { centerX: (e[0] + e[1]) / 2, centerY: (e[2] + e[3]) / 2, spanX: e[1] - e[0], spanY: e[3] - e[2] };
+      } else if (state.latestPose) {
+        view = { centerX: state.latestPose.x, centerY: state.latestPose.y, spanX: 16, spanY: 16 };
+      } else if (state.latestLocalMap) {
+        const e = state.latestLocalMap.extent;
+        view = { centerX: (e[0] + e[1]) / 2, centerY: (e[2] + e[3]) / 2, spanX: e[1] - e[0], spanY: e[3] - e[2] };
+      } else {
+        view = { centerX: 0, centerY: 0, spanX: 20, spanY: 20 };
+      }
+      const zoom = Math.max(0.25, Math.min(20.0, state.zoom));
+      return {
+        centerX: view.centerX + state.panX,
+        centerY: view.centerY + state.panY,
+        spanX: Math.max(view.spanX / zoom, 0.1),
+        spanY: Math.max(view.spanY / zoom, 0.1),
+      };
+    }
+
+    function worldToScreen(x, y, view) {
+      const padding = 40;
+      const usableWidth = canvas.width - padding * 2;
+      const usableHeight = canvas.height - padding * 2;
+      const scale = Math.min(usableWidth / view.spanX, usableHeight / view.spanY);
+      const sx = canvas.width / 2 + (x - view.centerX) * scale;
+      const sy = canvas.height / 2 - (y - view.centerY) * scale;
+      return { x: sx, y: sy, scale };
+    }
+
+    function drawGrid(grid, view) {
+      if (!grid || !grid.canvas) return;
+      const corners = grid.corners || [];
+      if (corners.length !== 4) return;
+      const bottomLeft = worldToScreen(corners[0][0], corners[0][1], view);
+      const topRight = worldToScreen(corners[2][0], corners[2][1], view);
+      const topLeft = worldToScreen(corners[3][0], corners[3][1], view);
+
+      const xAxis = {
+        x: (topRight.x - topLeft.x) / grid.width,
+        y: (topRight.y - topLeft.y) / grid.width,
+      };
+      const yAxis = {
+        x: (bottomLeft.x - topLeft.x) / grid.height,
+        y: (bottomLeft.y - topLeft.y) / grid.height,
+      };
+
+      ctx.save();
+      ctx.setTransform(xAxis.x, xAxis.y, yAxis.x, yAxis.y, topLeft.x, topLeft.y);
+      ctx.drawImage(grid.canvas, 0, 0, grid.width, grid.height);
+      ctx.restore();
+    }
+
+    function drawTrajectory(view) {
+      if (state.trajectory.length < 2) return;
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      state.trajectory.forEach((point, index) => {
+        const p = worldToScreen(point[0], point[1], view);
+        if (index === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      ctx.stroke();
+    }
+
+    function drawGoal(view) {
+      if (!state.latestGoal || !state.latestGoal.waypoints || state.latestGoal.waypoints.length === 0) return;
+      ctx.strokeStyle = "#f97316";
+      ctx.fillStyle = "#fb923c";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      state.latestGoal.waypoints.forEach((point, index) => {
+        const p = worldToScreen(point[0], point[1], view);
+        if (index === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      ctx.stroke();
+      state.latestGoal.waypoints.forEach(point => {
+        const p = worldToScreen(point[0], point[1], view);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawPose(view) {
+      if (!state.latestPose) return;
+      const p = worldToScreen(state.latestPose.x, state.latestPose.y, view);
+      const lengthPx = VEHICLE_FOOTPRINT.length * p.scale;
+      const widthPx = VEHICLE_FOOTPRINT.width * p.scale;
+      const arrowLengthPx = Math.max(lengthPx * 1.15, 34);
+      const shaftWidthPx = Math.max(widthPx * 0.12, 4);
+      const headWidthPx = Math.max(widthPx * 0.34, 12);
+      const headLengthPx = Math.max(lengthPx * 0.28, 14);
+      const headBaseY = -arrowLengthPx + headLengthPx;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(-state.latestPose.yaw + Math.PI / 2);
+
+      ctx.strokeStyle = "#1d9bf0";
+      ctx.lineWidth = 2.2;
+      ctx.strokeRect(-widthPx / 2, -lengthPx / 2, widthPx, lengthPx);
+
+      const arrowGradient = ctx.createLinearGradient(0, 0, 0, -arrowLengthPx);
+      arrowGradient.addColorStop(0, "#93c5fd");
+      arrowGradient.addColorStop(0.55, "#38bdf8");
+      arrowGradient.addColorStop(1, "#0f6fe8");
+
+      ctx.save();
+      ctx.shadowColor = "rgba(14, 116, 232, 0.28)";
+      ctx.shadowBlur = 14;
+      ctx.shadowOffsetY = 3;
+      ctx.beginPath();
+      ctx.moveTo(-shaftWidthPx / 2, 2);
+      ctx.lineTo(shaftWidthPx / 2, 2);
+      ctx.lineTo(shaftWidthPx / 2, headBaseY);
+      ctx.lineTo(headWidthPx / 2, headBaseY);
+      ctx.lineTo(0, -arrowLengthPx);
+      ctx.lineTo(-headWidthPx / 2, headBaseY);
+      ctx.lineTo(-shaftWidthPx / 2, headBaseY);
+      ctx.closePath();
+      ctx.fillStyle = arrowGradient;
+      ctx.fill();
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.moveTo(-shaftWidthPx * 0.18, 4);
+      ctx.lineTo(-shaftWidthPx * 0.18, headBaseY + 1);
+      ctx.lineTo(0, headBaseY - headLengthPx * 0.18);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.72)";
+      ctx.lineWidth = Math.max(shaftWidthPx * 0.22, 2);
+      ctx.lineCap = "round";
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(-shaftWidthPx / 2, 2);
+      ctx.lineTo(shaftWidthPx / 2, 2);
+      ctx.lineTo(shaftWidthPx / 2, headBaseY);
+      ctx.lineTo(headWidthPx / 2, headBaseY);
+      ctx.lineTo(0, -arrowLengthPx);
+      ctx.lineTo(-headWidthPx / 2, headBaseY);
+      ctx.lineTo(-shaftWidthPx / 2, headBaseY);
+      ctx.closePath();
+      ctx.strokeStyle = "rgba(14, 116, 232, 0.9)";
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function render() {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const view = computeView();
+      drawGrid(state.latestMap, view);
+      drawGrid(state.latestLocalMap, view);
+      drawTrajectory(view);
+      drawGoal(view);
+      drawPose(view);
+    }
+
+    function findNearestFrameIndex(screenX, screenY) {
+      if (!state.dataReady || state.frames.length === 0) return null;
+      const view = computeView();
+      let nearestIndex = null;
+      let nearestDistance = Infinity;
+      for (let i = 0; i < state.frames.length; i += 1) {
+        const frame = state.frames[i];
+        if (!frame.pose) continue;
+        const point = worldToScreen(frame.pose.x, frame.pose.y, view);
+        const dx = point.x - screenX;
+        const dy = point.y - screenY;
+        const distance = Math.hypot(dx, dy);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = i;
+        }
+      }
+      if (nearestDistance > 24) return null;
+      return nearestIndex;
+    }
+
+    function setIndex(index) {
+      if (!state.dataReady || state.frames.length === 0) return;
+      const bounded = Math.max(0, Math.min(state.frames.length - 1, index));
+      rebuildState(bounded);
+      render();
+    }
+
+    async function fetchMeta(loadVersion = state.loadVersion) {
+      const response = await fetch("/api/meta");
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to load replay metadata");
+      }
+      const meta = await response.json();
+      if (loadVersion !== state.loadVersion) return;
+      applyMeta(meta);
+      state.metaFetched = true;
+    }
+
+    async function fetchFrames(start, limit, loadVersion = state.loadVersion) {
+      if (limit <= 0 || state.fetchingFrames) return;
+      state.fetchingFrames = true;
+      try {
+        const response = await fetch(`/api/frames?start=${start}&limit=${limit}`);
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || "Failed to load replay frames");
+        }
+        const data = await response.json();
+        if (loadVersion !== state.loadVersion) return;
+        appendFrames(Number.isFinite(data.start) ? data.start : start, data.frames || []);
+      } finally {
+        if (loadVersion === state.loadVersion) {
+          state.fetchingFrames = false;
+        }
+      }
+    }
+
+    async function fetchLocalMap(index, loadVersion = state.loadVersion) {
+      if (!state.dataReady || index < 0 || index >= state.frames.length) return;
+      const frame = state.frames[index];
+      if (frame.local_map || state.localMapRequests.has(index)) return;
+      state.localMapRequests.add(index);
+      if (index === state.index) {
+        document.getElementById("localMapStatus").textContent = "请求 local_map...";
+      }
+      try {
+        const response = await fetch(`/api/local-map?index=${index}`);
+        if (!response.ok) {
+          return;
+        }
+        const data = await response.json();
+        if (loadVersion !== state.loadVersion) return;
+        if (Number.isFinite(data.index) && data.local_map) {
+          const target = state.frames[data.index];
+          if (target) {
+            target.local_map = decodeGrid(data.local_map);
+            if (data.index === state.index) {
+              rebuildState(state.index);
+              render();
+              updateSidebar();
+            }
+          }
+        }
+      } finally {
+        state.localMapRequests.delete(index);
+        if (index === state.index) {
+          updateSidebar();
+        }
+      }
+    }
+
+    async function syncReplayState(loadVersion = state.loadVersion) {
+      const response = await fetch("/api/status");
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to query replay status");
+      }
+      const status = await response.json();
+      if (loadVersion !== state.loadVersion) return;
+      if (status.state === "error") {
+        throw new Error(status.error || "Replay loading failed");
+      }
+
+      document.getElementById("rootPath").textContent =
+        state.selectedFileName || getFileName(status.root || "-");
+      document.getElementById("timeSpan").textContent = status.time_span || "-";
+      state.fullStartTimeUs = Number.isFinite(status.start_time_us) ? status.start_time_us : state.fullStartTimeUs;
+      state.fullEndTimeUs = Number.isFinite(status.end_time_us) ? status.end_time_us : state.fullEndTimeUs;
+      state.fullDurationUs = Number.isFinite(status.duration_us) ? status.duration_us : state.fullDurationUs;
+      document.getElementById("frameCount").textContent = status.complete
+        ? String(status.available_frames)
+        : `${status.available_frames}+`;
+      state.loadingComplete = Boolean(status.complete);
+
+      if (!state.metaFetched && status.static_map_available) {
+        await fetchMeta(loadVersion);
+      }
+      if (status.available_frames > state.frames.length) {
+        await fetchFrames(state.frames.length, status.available_frames - state.frames.length, loadVersion);
+      }
+      if (state.frames.length > 0) {
+        const refreshStart = Math.max(0, Math.min(state.index, state.frames.length - 1) - 30);
+        const refreshLimit = Math.min(120, state.frames.length - refreshStart);
+        await fetchFrames(refreshStart, refreshLimit, loadVersion);
+      }
+      if (loadVersion !== state.loadVersion) return;
+      if (!state.dataReady) {
+        document.getElementById("statusBar").textContent =
+          status.message || "Replay data is loading...";
+      } else {
+        updateSidebar();
+      }
+    }
+
+    document.getElementById("playBtn").addEventListener("click", () => {
+      if (!state.dataReady) return;
+      state.playing = !state.playing;
+      updateSidebar();
+    });
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      if (!state.dataReady) return;
+      state.playing = false;
+      setIndex(0);
+    });
+    document.getElementById("fitBtn").addEventListener("click", () => {
+      state.fitToMap = true;
+      state.zoom = 1.0;
+      state.panX = 0.0;
+      state.panY = 0.0;
+      render();
+      updateSidebar();
+    });
+    function stopHoldStep() {
+      if (state.holdTimer) {
+        window.clearTimeout(state.holdTimer);
+        state.holdTimer = null;
+      }
+      if (state.holdInterval) {
+        window.clearInterval(state.holdInterval);
+        state.holdInterval = null;
+      }
+    }
+
+    function stepFrame(delta) {
+      if (!state.dataReady) return;
+      state.playing = false;
+      setIndex(state.index + delta);
+    }
+
+    function startHoldStep(delta) {
+      if (!state.dataReady) return;
+      stopHoldStep();
+      stepFrame(delta);
+      state.holdTimer = window.setTimeout(() => {
+        state.holdInterval = window.setInterval(() => {
+          stepFrame(delta);
+        }, 80);
+      }, 280);
+    }
+
+    function bindHoldButton(buttonId, delta) {
+      const button = document.getElementById(buttonId);
+      button.addEventListener("mousedown", event => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        startHoldStep(delta);
+      });
+      button.addEventListener("mouseup", stopHoldStep);
+      button.addEventListener("mouseleave", stopHoldStep);
+      button.addEventListener("touchstart", event => {
+        event.preventDefault();
+        startHoldStep(delta);
+      }, { passive: false });
+      button.addEventListener("touchend", stopHoldStep);
+      button.addEventListener("touchcancel", stopHoldStep);
+    }
+
+    bindHoldButton("prevBtn", -1);
+    bindHoldButton("nextBtn", 1);
+    [1, 2, 4, 8, 16, 32, 64].forEach(speed => {
+      document.getElementById(`speed${speed}Btn`).addEventListener("click", () => {
+        setPlaybackSpeed(speed);
+      });
+    });
+    document.getElementById("slowerBtn").addEventListener("click", () => {
+      if (!state.dataReady) return;
+      state.speed = Math.max(0.25, state.speed / 2);
+      updateSpeedButtons();
+      updateSidebar();
+    });
+    document.getElementById("fasterBtn").addEventListener("click", () => {
+      if (!state.dataReady) return;
+      state.speed = Math.min(64.0, state.speed * 2);
+      updateSpeedButtons();
+      updateSidebar();
+    });
+    document.getElementById("timeSlider").addEventListener("input", event => {
+      if (!state.dataReady) return;
+      state.playing = false;
+      setIndex(Number(event.target.value));
+    });
+    document.getElementById("eventList").addEventListener("click", event => {
+      const item = event.target.closest(".event-item");
+      if (!item || !state.dataReady) return;
+      const frameIndex = Number(item.dataset.frameIndex);
+      if (!Number.isFinite(frameIndex)) return;
+      state.playing = false;
+      setIndex(frameIndex);
+      updateSidebar();
+    });
+    document.getElementById("loadLocalMapBtn").addEventListener("click", () => {
+      if (!state.dataReady || state.frames.length === 0) return;
+      fetchLocalMap(state.index, state.loadVersion);
+    });
+    document.getElementById("selectLogBtn").addEventListener("click", async () => {
+      document.getElementById("logPickerInput").click();
+    });
+    document.getElementById("logPickerInput").addEventListener("change", async event => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) {
+        document.getElementById("logPickerInput").value = "";
+        return;
+      }
+      try {
+        state.selectedFileName = file.name;
+        resetReplayState();
+        const loadVersion = state.loadVersion;
+        document.getElementById("rootPath").textContent = file.name;
+        document.getElementById("statusBar").textContent = "Uploading replay archive...";
+        await uploadReplayArchive(file);
+        if (loadVersion !== state.loadVersion) return;
+        document.getElementById("statusBar").textContent = "Replay archive uploaded. Preparing replay data...";
+        await syncReplayState(loadVersion);
+      } catch (error) {
+        document.getElementById("statusBar").textContent = `Load failed: ${error.message}`;
+      }
+      document.getElementById("logPickerInput").value = "";
+    });
+    window.addEventListener("keydown", event => {
+      if (!state.dataReady) return;
+      if (event.key === " ") {
+        event.preventDefault();
+        state.playing = !state.playing;
+        updateSidebar();
+      } else if (event.key === "ArrowRight") {
+        setIndex(state.index + 1);
+      } else if (event.key === "ArrowLeft") {
+        setIndex(state.index - 1);
+      }
+    });
+    window.addEventListener("mouseup", stopHoldStep);
+    canvas.addEventListener("wheel", event => {
+      event.preventDefault();
+      const factor = event.deltaY < 0 ? 1.15 : 1 / 1.15;
+      state.zoom = Math.max(0.25, Math.min(20.0, state.zoom * factor));
+      state.fitToMap = false;
+      render();
+      updateSidebar();
+    }, { passive: false });
+
+    canvas.addEventListener("mousedown", event => {
+      if (event.button !== 0) return;
+      state.dragging = true;
+      state.dragMoved = false;
+      state.dragLastX = event.clientX;
+      state.dragLastY = event.clientY;
+      state.fitToMap = false;
+      canvas.style.cursor = "grabbing";
+    });
+
+    canvas.addEventListener("click", event => {
+      if (!state.dataReady || state.frames.length === 0) return;
+      if (state.dragMoved) {
+        state.dragMoved = false;
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const canvasX = (event.clientX - rect.left) * scaleX;
+      const canvasY = (event.clientY - rect.top) * scaleY;
+      const nearestIndex = findNearestFrameIndex(canvasX, canvasY);
+      if (nearestIndex === null) return;
+      state.playing = false;
+      setIndex(nearestIndex);
+    });
+
+    window.addEventListener("mousemove", event => {
+      if (!state.dragging) return;
+      const dx = event.clientX - state.dragLastX;
+      const dy = event.clientY - state.dragLastY;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+        state.dragMoved = true;
+      }
+      state.dragLastX = event.clientX;
+      state.dragLastY = event.clientY;
+      const view = computeView();
+      const padding = 40;
+      const usableWidth = canvas.width - padding * 2;
+      const usableHeight = canvas.height - padding * 2;
+      const scale = Math.min(usableWidth / view.spanX, usableHeight / view.spanY);
+      if (scale > 0) {
+        state.panX -= dx / scale;
+        state.panY += dy / scale;
+      }
+      render();
+      updateSidebar();
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (!state.dragging) return;
+      state.dragging = false;
+      canvas.style.cursor = "grab";
+    });
+
+    canvas.addEventListener("mouseleave", () => {
+      if (!state.dragging) {
+        canvas.style.cursor = "grab";
+      }
+    });
+
+    function tickPlayback() {
+      if (state.dataReady && state.playing && state.frames.length > 0) {
+        if (state.index >= state.frames.length - 1) {
+          if (state.loadingComplete) {
+            state.playing = false;
+            updateSidebar();
+          }
+        } else {
+          setIndex(state.index + 1);
+        }
+      }
+      window.setTimeout(tickPlayback, 160 / state.speed);
+    }
+    tickPlayback();
+
+    async function pollReplayState() {
+      const loadVersion = state.loadVersion;
+      try {
+        await syncReplayState(loadVersion);
+      } catch (error) {
+        if (loadVersion === state.loadVersion) {
+          document.getElementById("statusBar").textContent = `Load failed: ${error.message}`;
+        }
+      } finally {
+        window.setTimeout(pollReplayState, 800);
+      }
+    }
+
+    pollReplayState();
+  </script>
+</body>
+</html>

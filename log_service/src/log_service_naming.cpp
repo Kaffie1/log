@@ -11,6 +11,8 @@
 namespace naviai::log {
 namespace {
 
+constexpr std::int64_t kUtcPlus8OffsetSeconds = 8LL * 60LL * 60LL;
+
 std::string TrimLeadingDot(std::string suffix) {
     if (!suffix.empty() && suffix.front() == '.') {
         suffix.erase(suffix.begin());
@@ -20,6 +22,36 @@ std::string TrimLeadingDot(std::string suffix) {
 
 bool ContainsPathTraversal(const std::string& value) {
     return value.find("..") != std::string::npos;
+}
+
+std::tm UtcPlus8TmFromUnixSeconds(std::time_t unix_seconds) {
+    const auto shifted_seconds = unix_seconds + kUtcPlus8OffsetSeconds;
+    std::tm tm_value {};
+#if defined(_WIN32)
+    gmtime_s(&tm_value, &shifted_seconds);
+#else
+    gmtime_r(&shifted_seconds, &tm_value);
+#endif
+    return tm_value;
+}
+
+std::optional<std::int64_t> ParseUtcPlus8Timestamp(
+    const std::string& value, const char* format) {
+    std::tm tm_value {};
+    std::istringstream iss(value);
+    iss >> std::get_time(&tm_value, format);
+    if (iss.fail()) {
+        return std::nullopt;
+    }
+#if defined(_WIN32)
+    const auto utc_seconds = _mkgmtime(&tm_value);
+#else
+    const auto utc_seconds = timegm(&tm_value);
+#endif
+    if (utc_seconds == static_cast<std::time_t>(-1)) {
+        return std::nullopt;
+    }
+    return static_cast<std::int64_t>(utc_seconds - kUtcPlus8OffsetSeconds) * 1000000;
 }
 
 }  // namespace
@@ -93,12 +125,7 @@ LogServiceState LogService::GetState() const {
 
 std::string LogService::FormatTimestamp(std::int64_t time_us) {
     const auto time_t_value = static_cast<std::time_t>(time_us / 1000000);
-    std::tm tm_value {};
-#if defined(_WIN32)
-    localtime_s(&tm_value, &time_t_value);
-#else
-    localtime_r(&time_t_value, &tm_value);
-#endif
+    const auto tm_value = UtcPlus8TmFromUnixSeconds(time_t_value);
     std::ostringstream oss;
     oss << std::put_time(&tm_value, "%Y%m%d_%H%M%S");
     return oss.str();
@@ -165,13 +192,7 @@ std::optional<std::pair<std::int64_t, std::int64_t>> LogService::ParseTimeRange(
             return std::nullopt;
         }
         const auto candidate = value.substr(0, 15);
-        std::tm tm_value {};
-        std::istringstream iss(candidate);
-        iss >> std::get_time(&tm_value, "%Y%m%d_%H%M%S");
-        if (iss.fail()) {
-            return std::nullopt;
-        }
-        return static_cast<std::int64_t>(std::mktime(&tm_value)) * 1000000;
+        return ParseUtcPlus8Timestamp(candidate, "%Y%m%d_%H%M%S");
     };
 
     const auto start = parse_part(name.substr(0, delimiter));

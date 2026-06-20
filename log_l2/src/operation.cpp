@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <cstdlib>
+#include <iomanip>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
@@ -27,6 +28,7 @@ constexpr char kTopicRecordLogOutputGroup[] = "replay/topic_record";
 constexpr char kStaticMapTopicRecordLogModuleName[] = "l2_topic_record_map";
 constexpr char kStaticMapTopicRecordLogOutputGroup[] = "replay/static_map";
 constexpr char kStaticMapTopic[] = "/zj_humanoid/navigation/map";
+constexpr std::int64_t kUtcPlus8OffsetSeconds = 8LL * 60LL * 60LL;
 bool g_recovery_checked_once = false;
 
 struct SegmentFileGroup {
@@ -299,6 +301,57 @@ bool CopyFileToBundle(const std::filesystem::path& source_path,
     return input.good() || input.eof();
 }
 
+std::optional<std::int64_t> ParseUtcPlus8Timestamp(std::string_view value) {
+    if (value.size() < 15) {
+        return std::nullopt;
+    }
+    std::tm tm_value {};
+    std::istringstream iss(std::string(value.substr(0, 15)));
+    iss >> std::get_time(&tm_value, "%Y%m%d_%H%M%S");
+    if (iss.fail()) {
+        return std::nullopt;
+    }
+#if defined(_WIN32)
+    const auto utc_seconds = _mkgmtime(&tm_value);
+#else
+    const auto utc_seconds = timegm(&tm_value);
+#endif
+    if (utc_seconds == static_cast<std::time_t>(-1)) {
+        return std::nullopt;
+    }
+    return static_cast<std::int64_t>(utc_seconds - kUtcPlus8OffsetSeconds) * 1000000;
+}
+
+std::optional<std::pair<std::int64_t, std::int64_t>> ParseTimeRangeFromFileName(
+    const std::filesystem::path& path) {
+    std::string name = path.filename().string();
+    while (true) {
+        const auto dot_pos = name.rfind('.');
+        if (dot_pos == std::string::npos) {
+            break;
+        }
+        name.resize(dot_pos);
+    }
+    const auto delimiter = name.find('-');
+    if (delimiter == std::string::npos) {
+        return std::nullopt;
+    }
+
+    const auto start = ParseUtcPlus8Timestamp(name.substr(0, delimiter));
+    if (!start.has_value()) {
+        return std::nullopt;
+    }
+    const auto end_text = name.substr(delimiter + 1);
+    if (end_text.empty()) {
+        return std::make_pair(*start, std::numeric_limits<std::int64_t>::max());
+    }
+    const auto end = ParseUtcPlus8Timestamp(end_text);
+    if (!end.has_value()) {
+        return std::nullopt;
+    }
+    return std::make_pair(*start, *end);
+}
+
 void CollectSegmentGroups(const std::filesystem::path& root_dir,
                           std::vector<SegmentFileGroup>* groups) {
     if (groups == nullptr) {
@@ -351,10 +404,12 @@ void CollectSegmentGroups(const std::filesystem::path& root_dir,
             ec.clear();
             continue;
         }
-        if (!ReadSegmentTimeRangeFromMaybeCompressedIndex(path, &group.start_time_us,
-                                                          &group.end_time_us)) {
+        const auto time_range = ParseTimeRangeFromFileName(path);
+        if (!time_range.has_value()) {
             continue;
         }
+        group.start_time_us = time_range->first;
+        group.end_time_us = time_range->second;
         groups->push_back(std::move(group));
     }
 }
@@ -369,26 +424,10 @@ std::vector<SegmentFileGroup> SelectPackageGroups(
     const std::vector<SegmentFileGroup>& groups,
     const L2PackageOptions& options) {
     std::vector<SegmentFileGroup> selected_groups;
-    std::optional<SegmentFileGroup> selected_map_group;
     for (const auto& group : groups) {
-        const auto relative_text = group.relative_data_path.generic_string();
-        const bool is_map_group =
-            relative_text.rfind("static_data/", 0) == 0 ||
-            group.relative_index_path.generic_string().rfind("static_data/", 0) == 0;
-        if (is_map_group) {
-            if (!selected_map_group.has_value() ||
-                group.start_time_us >= selected_map_group->start_time_us) {
-                selected_map_group = group;
-            }
-            continue;
-        }
         if (OverlapsRange(group, options.start_time_us, options.end_time_us)) {
             selected_groups.push_back(group);
         }
-    }
-
-    if (selected_map_group.has_value()) {
-        selected_groups.push_back(*selected_map_group);
     }
     return selected_groups;
 }

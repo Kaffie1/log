@@ -24,9 +24,21 @@ constexpr std::uint64_t kMaxAdaptiveSegmentSizeBytes =
     8ULL * 1024ULL * 1024ULL * 1024ULL;
 constexpr int64_t kRenameIntervalUs = 60LL * 1000000LL;
 constexpr int64_t kReplayRetentionWindowUs = 48LL * 60LL * 60LL * 1000000LL;
+constexpr std::int64_t kUtcPlus8OffsetSeconds = 8LL * 60LL * 60LL;
 constexpr size_t kSegmentOverlapRecordCount = 20U;
 constexpr char kStaticMapTopic[] = "/zj_humanoid/navigation/map";
 constexpr char kLocalMapTopic[] = "/zj_humanoid/navigation/local_map";
+
+std::tm UtcPlus8TmFromUnixSeconds(std::time_t unix_seconds) {
+    const auto shifted_seconds = unix_seconds + kUtcPlus8OffsetSeconds;
+    std::tm tm_buf {};
+#if defined(_WIN32)
+    gmtime_s(&tm_buf, &shifted_seconds);
+#else
+    gmtime_r(&shifted_seconds, &tm_buf);
+#endif
+    return tm_buf;
+}
 
 std::uint64_t ClampSegmentSizeBytes(std::uint64_t value) {
     if (value < kMinAdaptiveSegmentSizeBytes) {
@@ -198,8 +210,7 @@ bool IsEpochYearStartTimeUs(int64_t start_time_us) {
         return false;
     }
     const auto time = static_cast<std::time_t>(start_time_us / 1000000LL);
-    std::tm tm_buf{};
-    localtime_r(&time, &tm_buf);
+    const auto tm_buf = UtcPlus8TmFromUnixSeconds(time);
     return (tm_buf.tm_year + 1900) == 1970;
 }
 
@@ -616,8 +627,7 @@ std::string FormatSegmentTime(int64_t message_time_us) {
     const auto time_point =
         std::chrono::system_clock::time_point(std::chrono::microseconds(message_time_us));
     const auto time = std::chrono::system_clock::to_time_t(time_point);
-    std::tm tm_buf{};
-    localtime_r(&time, &tm_buf);
+    const auto tm_buf = UtcPlus8TmFromUnixSeconds(time);
 
     std::ostringstream oss;
     oss << std::put_time(&tm_buf, "%Y%m%d_%H%M%S");

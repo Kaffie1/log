@@ -36,6 +36,18 @@ target_link_libraries(l2_runtime_validation PRIVATE
     log_agent
 )
 
+add_executable(l2_package_cli
+    l2_package_cli.cpp
+)
+
+target_include_directories(l2_package_cli PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_link_libraries(l2_package_cli PRIVATE
+    log_l2
+)
+
 set(LOG_TEST_CASE_IDS
     01 02 03 04 05 06 07 08 09 10
     11 12 13 14 15 16 17 18 19 20

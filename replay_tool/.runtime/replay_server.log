@@ -1,0 +1,358 @@
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2.tar.xz, content_length=25929080
+[replay_server] upload complete target=/tmp/replay_tool_uploads/l2_8.tar.xz, size=25929080
+[replay_server] starting loader thread for root=/tmp/replay_tool_uploads/l2_8.tar.xz
+[replay_server] loader initialized for uploaded archive /tmp/replay_tool_uploads/l2_8.tar.xz
+[replay_server] resolving replay input root=/tmp/replay_tool_uploads/l2_8.tar.xz
+[replay_core] resolve_replay_root input=/tmp/replay_tool_uploads/l2_8.tar.xz
+[replay_core] extracting archive /tmp/replay_tool_uploads/l2_8.tar.xz -> /tmp/replay_tool_extract/l2_8.tar_25929080_1781768496
+[replay_core] finished extracting archive /tmp/replay_tool_uploads/l2_8.tar.xz, resolved root /tmp/replay_tool_extract/l2_8.tar_25929080_1781768496/l2
+[replay_server] resolved replay root=/tmp/replay_tool_extract/l2_8.tar_25929080_1781768496/l2
+[replay_server] scanned 1 map files under /tmp/replay_tool_extract/l2_8.tar_25929080_1781768496/l2/sensor_data/map
+[replay_server] loaded static map from /tmp/replay_tool_extract/l2_8.tar_25929080_1781768496/l2/sensor_data/map/20260617_032206-20260617_032206.data.gz
+[replay_server] starting frame stream for root=/tmp/replay_tool_extract/l2_8.tar_25929080_1781768496/l2
+[replay_server] stream roots=/tmp/replay_tool_extract/l2_8.tar_25929080_1781768496/l2/business_data, /tmp/replay_tool_extract/l2_8.tar_25929080_1781768496/l2/sensor_data/local_map
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2.tar.xz, content_length=25929080
+[replay_server] upload complete target=/tmp/replay_tool_uploads/l2_9.tar.xz, size=25929080
+[replay_server] starting loader thread for root=/tmp/replay_tool_uploads/l2_9.tar.xz
+[replay_server] loader initialized for uploaded archive /tmp/replay_tool_uploads/l2_9.tar.xz
+[replay_server] resolving replay input root=/tmp/replay_tool_uploads/l2_9.tar.xz
+[replay_core] resolve_replay_root input=/tmp/replay_tool_uploads/l2_9.tar.xz
+[replay_core] extracting archive /tmp/replay_tool_uploads/l2_9.tar.xz -> /tmp/replay_tool_extract/l2_9.tar_25929080_1781769890
+[replay_core] finished extracting archive /tmp/replay_tool_uploads/l2_9.tar.xz, resolved root /tmp/replay_tool_extract/l2_9.tar_25929080_1781769890/l2
+[replay_server] resolved replay root=/tmp/replay_tool_extract/l2_9.tar_25929080_1781769890/l2
+[replay_server] scanned 1 map files under /tmp/replay_tool_extract/l2_9.tar_25929080_1781769890/l2/sensor_data/map
+[replay_server] loaded static map from /tmp/replay_tool_extract/l2_9.tar_25929080_1781769890/l2/sensor_data/map/20260617_032206-20260617_032206.data.gz
+[replay_server] starting frame stream for root=/tmp/replay_tool_extract/l2_9.tar_25929080_1781769890/l2
+[replay_server] stream business root=/tmp/replay_tool_extract/l2_9.tar_25929080_1781769890/l2/business_data
+[replay_server] replay data ready root=/tmp/replay_tool_extract/l2_9.tar_25929080_1781769890/l2, business_frames=92093
+[replay_server] indexing local_map refs from root=/tmp/replay_tool_extract/l2_9.tar_25929080_1781769890/l2/sensor_data/local_map
+[replay_server] loader failed root=/tmp/replay_tool_uploads/l2_9.tar.xz: 'str' object is not callable
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2.tar.xz, content_length=25929080
+[replay_server] upload complete target=/tmp/replay_tool_uploads/l2_10.tar.xz, size=25929080
+[replay_server] starting loader thread for root=/tmp/replay_tool_uploads/l2_10.tar.xz
+[replay_server] loader initialized for uploaded archive /tmp/replay_tool_uploads/l2_10.tar.xz
+[replay_server] resolving replay input root=/tmp/replay_tool_uploads/l2_10.tar.xz
+[replay_core] resolve_replay_root input=/tmp/replay_tool_uploads/l2_10.tar.xz
+[replay_core] extracting archive /tmp/replay_tool_uploads/l2_10.tar.xz -> /tmp/replay_tool_extract/l2_10.tar_25929080_1781774031
+[replay_core] finished extracting archive /tmp/replay_tool_uploads/l2_10.tar.xz, resolved root /tmp/replay_tool_extract/l2_10.tar_25929080_1781774031/l2
+[replay_server] resolved replay root=/tmp/replay_tool_extract/l2_10.tar_25929080_1781774031/l2
+[replay_server] scanned 1 map files under /tmp/replay_tool_extract/l2_10.tar_25929080_1781774031/l2/sensor_data/map
+[replay_server] loaded static map from /tmp/replay_tool_extract/l2_10.tar_25929080_1781774031/l2/sensor_data/map/20260617_032206-20260617_032206.data.gz
+[replay_server] starting frame stream for root=/tmp/replay_tool_extract/l2_10.tar_25929080_1781774031/l2
+[replay_server] stream business root=/tmp/replay_tool_extract/l2_10.tar_25929080_1781774031/l2/business_data
+[replay_server] replay data ready root=/tmp/replay_tool_extract/l2_10.tar_25929080_1781774031/l2, business_frames=92093
+[replay_server] indexing local_map refs from root=/tmp/replay_tool_extract/l2_10.tar_25929080_1781774031/l2/sensor_data/local_map
+[replay_server] loader failed root=/tmp/replay_tool_uploads/l2_10.tar.xz: 'str' object is not callable
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2.tar.xz, content_length=25929080
+[replay_server] upload complete target=/tmp/replay_tool_uploads/l2_11.tar.xz, size=25929080
+[replay_server] starting loader thread for root=/tmp/replay_tool_uploads/l2_11.tar.xz
+[replay_server] loader initialized for uploaded archive /tmp/replay_tool_uploads/l2_11.tar.xz
+[replay_server] resolving replay input root=/tmp/replay_tool_uploads/l2_11.tar.xz
+[replay_core] resolve_replay_root input=/tmp/replay_tool_uploads/l2_11.tar.xz
+[replay_core] extracting archive /tmp/replay_tool_uploads/l2_11.tar.xz -> /tmp/replay_tool_extract/l2_11.tar_25929080_1781774180
+[replay_core] finished extracting archive /tmp/replay_tool_uploads/l2_11.tar.xz, resolved root /tmp/replay_tool_extract/l2_11.tar_25929080_1781774180/l2
+[replay_server] resolved replay root=/tmp/replay_tool_extract/l2_11.tar_25929080_1781774180/l2
+[replay_server] scanned 1 map files under /tmp/replay_tool_extract/l2_11.tar_25929080_1781774180/l2/sensor_data/map
+[replay_server] loaded static map from /tmp/replay_tool_extract/l2_11.tar_25929080_1781774180/l2/sensor_data/map/20260617_032206-20260617_032206.data.gz
+[replay_server] starting frame stream for root=/tmp/replay_tool_extract/l2_11.tar_25929080_1781774180/l2
+[replay_server] stream business root=/tmp/replay_tool_extract/l2_11.tar_25929080_1781774180/l2/business_data
+[replay_server] replay data ready root=/tmp/replay_tool_extract/l2_11.tar_25929080_1781774180/l2, business_frames=92093
+[replay_server] indexing local_map refs from root=/tmp/replay_tool_extract/l2_11.tar_25929080_1781774180/l2/sensor_data/local_map
+[replay_server] loader failed root=/tmp/replay_tool_uploads/l2_11.tar.xz: 'str' object is not callable
+Traceback (most recent call last):
+  File "/home/wanghusen/zj-humanoid/log/naviai_log/replay_tool/backend/replay_server.py", line 422, in _load
+    self._index_local_maps(resolved_root)
+  File "/home/wanghusen/zj-humanoid/log/naviai_log/replay_tool/backend/replay_server.py", line 477, in _index_local_maps
+    data_path = self._find_local_map_data_path(idx_path)
+  File "/home/wanghusen/zj-humanoid/log/naviai_log/replay_tool/backend/replay_server.py", line 464, in _find_local_map_data_path
+    data_path = idx_path.parent / (idx_path.stem().replace(".idx", ".data") + ".gz")
+TypeError: 'str' object is not callable
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2.tar.xz, content_length=25929080
+[replay_server] upload complete target=/tmp/replay_tool_uploads/l2_12.tar.xz, size=25929080
+[replay_server] starting loader thread for root=/tmp/replay_tool_uploads/l2_12.tar.xz
+[replay_server] loader initialized for uploaded archive /tmp/replay_tool_uploads/l2_12.tar.xz
+[replay_server] resolving replay input root=/tmp/replay_tool_uploads/l2_12.tar.xz
+[replay_core] resolve_replay_root input=/tmp/replay_tool_uploads/l2_12.tar.xz
+[replay_core] extracting archive /tmp/replay_tool_uploads/l2_12.tar.xz -> /tmp/replay_tool_extract/l2_12.tar_25929080_1781774243
+[replay_core] finished extracting archive /tmp/replay_tool_uploads/l2_12.tar.xz, resolved root /tmp/replay_tool_extract/l2_12.tar_25929080_1781774243/l2
+[replay_server] resolved replay root=/tmp/replay_tool_extract/l2_12.tar_25929080_1781774243/l2
+[replay_server] scanned 1 map files under /tmp/replay_tool_extract/l2_12.tar_25929080_1781774243/l2/sensor_data/map
+[replay_server] loaded static map from /tmp/replay_tool_extract/l2_12.tar_25929080_1781774243/l2/sensor_data/map/20260617_032206-20260617_032206.data.gz
+[replay_server] starting frame stream for root=/tmp/replay_tool_extract/l2_12.tar_25929080_1781774243/l2
+[replay_server] stream business root=/tmp/replay_tool_extract/l2_12.tar_25929080_1781774243/l2/business_data
+[replay_server] replay data ready root=/tmp/replay_tool_extract/l2_12.tar_25929080_1781774243/l2, business_frames=92093
+[replay_server] indexing local_map refs from root=/tmp/replay_tool_extract/l2_12.tar_25929080_1781774243/l2/sensor_data/local_map
+[replay_server] local_map index ready root=/tmp/replay_tool_extract/l2_12.tar_25929080_1781774243/l2/sensor_data/local_map, refs=1, records=2526
+----------------------------------------
+Exception occurred during processing of request from ('172.16.9.227', 41570)
+Traceback (most recent call last):
+  File "/home/naviai/miniconda3/envs/py310/lib/python3.10/socketserver.py", line 683, in process_request_thread
+    self.finish_request(request, client_address)
+  File "/home/naviai/miniconda3/envs/py310/lib/python3.10/socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "/home/naviai/miniconda3/envs/py310/lib/python3.10/socketserver.py", line 747, in __init__
+    self.handle()
+  File "/home/naviai/miniconda3/envs/py310/lib/python3.10/http/server.py", line 437, in handle
+    self.handle_one_request()
+  File "/home/naviai/miniconda3/envs/py310/lib/python3.10/http/server.py", line 425, in handle_one_request
+    method()
+  File "/home/wanghusen/zj-humanoid/log/naviai_log/replay_tool/backend/replay_server.py", line 686, in do_GET
+    self._write_json(self._require_loader().get_local_map(index))
+  File "/home/wanghusen/zj-humanoid/log/naviai_log/replay_tool/backend/replay_server.py", line 546, in get_local_map
+    encoded = self._load_local_map_at_offset(data_path, offset)
+  File "/home/wanghusen/zj-humanoid/log/naviai_log/replay_tool/backend/replay_server.py", line 503, in _load_local_map_at_offset
+    metadata_size, payload_size, record_time_us, message_time_us, _, _ = struct.Struct("<IIqqqQ").unpack(header_bytes)
+struct.error: unpack requires a buffer of 40 bytes
+----------------------------------------
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2.tar.xz, content_length=25929080
+[replay_server] upload complete target=/tmp/replay_tool_uploads/l2_13.tar.xz, size=25929080
+[replay_server] starting loader thread for root=/tmp/replay_tool_uploads/l2_13.tar.xz
+[replay_server] loader initialized for uploaded archive /tmp/replay_tool_uploads/l2_13.tar.xz
+[replay_server] resolving replay input root=/tmp/replay_tool_uploads/l2_13.tar.xz
+[replay_core] resolve_replay_root input=/tmp/replay_tool_uploads/l2_13.tar.xz
+[replay_core] extracting archive /tmp/replay_tool_uploads/l2_13.tar.xz -> /tmp/replay_tool_extract/l2_13.tar_25929080_1781774397
+[replay_core] finished extracting archive /tmp/replay_tool_uploads/l2_13.tar.xz, resolved root /tmp/replay_tool_extract/l2_13.tar_25929080_1781774397/l2
+[replay_server] resolved replay root=/tmp/replay_tool_extract/l2_13.tar_25929080_1781774397/l2
+[replay_server] scanned 1 map files under /tmp/replay_tool_extract/l2_13.tar_25929080_1781774397/l2/sensor_data/map
+[replay_server] loaded static map from /tmp/replay_tool_extract/l2_13.tar_25929080_1781774397/l2/sensor_data/map/20260617_032206-20260617_032206.data.gz
+[replay_server] starting frame stream for root=/tmp/replay_tool_extract/l2_13.tar_25929080_1781774397/l2
+[replay_server] stream business root=/tmp/replay_tool_extract/l2_13.tar_25929080_1781774397/l2/business_data
+[replay_server] replay data ready root=/tmp/replay_tool_extract/l2_13.tar_25929080_1781774397/l2, business_frames=92093
+[replay_server] indexing local_map refs from root=/tmp/replay_tool_extract/l2_13.tar_25929080_1781774397/l2/sensor_data/local_map
+[replay_server] local_map index ready root=/tmp/replay_tool_extract/l2_13.tar_25929080_1781774397/l2/sensor_data/local_map, refs=1, records=2526
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2.tar.xz, content_length=25929080
+[replay_server] upload complete target=/tmp/replay_tool_uploads/l2_14.tar.xz, size=25929080
+[replay_server] starting loader thread for root=/tmp/replay_tool_uploads/l2_14.tar.xz
+[replay_server] loader initialized for uploaded archive /tmp/replay_tool_uploads/l2_14.tar.xz
+[replay_server] resolving replay input root=/tmp/replay_tool_uploads/l2_14.tar.xz
+[replay_core] resolve_replay_root input=/tmp/replay_tool_uploads/l2_14.tar.xz
+[replay_core] extracting archive /tmp/replay_tool_uploads/l2_14.tar.xz -> /tmp/replay_tool_extract/l2_14.tar_25929080_1781774636
+[replay_core] finished extracting archive /tmp/replay_tool_uploads/l2_14.tar.xz, resolved root /tmp/replay_tool_extract/l2_14.tar_25929080_1781774636/l2
+[replay_server] resolved replay root=/tmp/replay_tool_extract/l2_14.tar_25929080_1781774636/l2
+[replay_server] scanned 1 map files under /tmp/replay_tool_extract/l2_14.tar_25929080_1781774636/l2/sensor_data/map
+[replay_server] loaded static map from /tmp/replay_tool_extract/l2_14.tar_25929080_1781774636/l2/sensor_data/map/20260617_032206-20260617_032206.data.gz
+[replay_server] starting frame stream for root=/tmp/replay_tool_extract/l2_14.tar_25929080_1781774636/l2
+[replay_server] stream business root=/tmp/replay_tool_extract/l2_14.tar_25929080_1781774636/l2/business_data
+[replay_server] replay data ready root=/tmp/replay_tool_extract/l2_14.tar_25929080_1781774636/l2, business_frames=92093
+[replay_server] indexing local_map refs from root=/tmp/replay_tool_extract/l2_14.tar_25929080_1781774636/l2/sensor_data/local_map
+[replay_server] local_map index ready root=/tmp/replay_tool_extract/l2_14.tar_25929080_1781774636/l2/sensor_data/local_map, refs=1, records=2526
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2.tar.xz, content_length=25929080
+[replay_server] upload complete target=/tmp/replay_tool_uploads/l2_15.tar.xz, size=25929080
+[replay_server] starting loader thread for root=/tmp/replay_tool_uploads/l2_15.tar.xz
+[replay_server] loader initialized for uploaded archive /tmp/replay_tool_uploads/l2_15.tar.xz
+[replay_server] resolving replay input root=/tmp/replay_tool_uploads/l2_15.tar.xz
+[replay_core] resolve_replay_root input=/tmp/replay_tool_uploads/l2_15.tar.xz
+[replay_core] extracting archive /tmp/replay_tool_uploads/l2_15.tar.xz -> /tmp/replay_tool_extract/l2_15.tar_25929080_1781774724
+[replay_core] finished extracting archive /tmp/replay_tool_uploads/l2_15.tar.xz, resolved root /tmp/replay_tool_extract/l2_15.tar_25929080_1781774724/l2
+[replay_server] resolved replay root=/tmp/replay_tool_extract/l2_15.tar_25929080_1781774724/l2
+[replay_server] scanned 1 map files under /tmp/replay_tool_extract/l2_15.tar_25929080_1781774724/l2/sensor_data/map
+[replay_server] loaded static map from /tmp/replay_tool_extract/l2_15.tar_25929080_1781774724/l2/sensor_data/map/20260617_032206-20260617_032206.data.gz
+[replay_server] starting frame stream for root=/tmp/replay_tool_extract/l2_15.tar_25929080_1781774724/l2
+[replay_server] stream business root=/tmp/replay_tool_extract/l2_15.tar_25929080_1781774724/l2/business_data
+[replay_server] replay data ready root=/tmp/replay_tool_extract/l2_15.tar_25929080_1781774724/l2, business_frames=92093
+[replay_server] indexing local_map refs from root=/tmp/replay_tool_extract/l2_15.tar_25929080_1781774724/l2/sensor_data/local_map
+[replay_server] local_map index ready root=/tmp/replay_tool_extract/l2_15.tar_25929080_1781774724/l2/sensor_data/local_map, refs=1, records=2526
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2.tar.xz, content_length=25929080
+[replay_server] upload complete target=/tmp/replay_tool_uploads/l2_16.tar.xz, size=25929080
+[replay_server] starting loader thread for root=/tmp/replay_tool_uploads/l2_16.tar.xz
+[replay_server] loader initialized for uploaded archive /tmp/replay_tool_uploads/l2_16.tar.xz
+[replay_server] resolving replay input root=/tmp/replay_tool_uploads/l2_16.tar.xz
+[replay_core] resolve_replay_root input=/tmp/replay_tool_uploads/l2_16.tar.xz
+[replay_core] extracting archive /tmp/replay_tool_uploads/l2_16.tar.xz -> /tmp/replay_tool_extract/l2_16.tar_25929080_1781774952
+[replay_core] finished extracting archive /tmp/replay_tool_uploads/l2_16.tar.xz, resolved root /tmp/replay_tool_extract/l2_16.tar_25929080_1781774952/l2
+[replay_server] resolved replay root=/tmp/replay_tool_extract/l2_16.tar_25929080_1781774952/l2
+[replay_server] scanned 1 map files under /tmp/replay_tool_extract/l2_16.tar_25929080_1781774952/l2/sensor_data/map
+[replay_server] loaded static map from /tmp/replay_tool_extract/l2_16.tar_25929080_1781774952/l2/sensor_data/map/20260617_032206-20260617_032206.data.gz
+[replay_server] starting frame stream for root=/tmp/replay_tool_extract/l2_16.tar_25929080_1781774952/l2
+[replay_server] stream business root=/tmp/replay_tool_extract/l2_16.tar_25929080_1781774952/l2/business_data
+[replay_server] replay data ready root=/tmp/replay_tool_extract/l2_16.tar_25929080_1781774952/l2, business_frames=92093
+[replay_server] indexing local_map refs from root=/tmp/replay_tool_extract/l2_16.tar_25929080_1781774952/l2/sensor_data/local_map
+[replay_server] local_map idx=20260618_062657-20260618_062748.idx.gz aligns_by=record_time_us
+[replay_server] local_map idx=20260618_062746-20260618_063009.idx.gz aligns_by=record_time_us
+[replay_server] local_map idx=20260618_063007-20260618_063201.idx.gz aligns_by=record_time_us
+[replay_server] local_map index ready root=/tmp/replay_tool_extract/l2_16.tar_25929080_1781774952/l2/sensor_data/local_map, refs=1, records=2526
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2.tar.xz, content_length=25929080
+[replay_server] upload complete target=/tmp/replay_tool_uploads/l2_17.tar.xz, size=25929080
+[replay_server] starting loader thread for root=/tmp/replay_tool_uploads/l2_17.tar.xz
+[replay_server] loader initialized for uploaded archive /tmp/replay_tool_uploads/l2_17.tar.xz
+[replay_server] resolving replay input root=/tmp/replay_tool_uploads/l2_17.tar.xz
+[replay_core] resolve_replay_root input=/tmp/replay_tool_uploads/l2_17.tar.xz
+[replay_core] extracting archive /tmp/replay_tool_uploads/l2_17.tar.xz -> /tmp/replay_tool_extract/l2_17.tar_25929080_1781775136
+[replay_core] finished extracting archive /tmp/replay_tool_uploads/l2_17.tar.xz, resolved root /tmp/replay_tool_extract/l2_17.tar_25929080_1781775136/l2
+[replay_server] resolved replay root=/tmp/replay_tool_extract/l2_17.tar_25929080_1781775136/l2
+[replay_server] scanned 1 map files under /tmp/replay_tool_extract/l2_17.tar_25929080_1781775136/l2/sensor_data/map
+[replay_server] loaded static map from /tmp/replay_tool_extract/l2_17.tar_25929080_1781775136/l2/sensor_data/map/20260617_032206-20260617_032206.data.gz
+[replay_server] starting frame stream for root=/tmp/replay_tool_extract/l2_17.tar_25929080_1781775136/l2
+[replay_server] stream business root=/tmp/replay_tool_extract/l2_17.tar_25929080_1781775136/l2/business_data
+[replay_server] replay data ready root=/tmp/replay_tool_extract/l2_17.tar_25929080_1781775136/l2, business_frames=92093
+[replay_server] indexing local_map refs from root=/tmp/replay_tool_extract/l2_17.tar_25929080_1781775136/l2/sensor_data/local_map
+[replay_server] local_map idx=20260618_062657-20260618_062748.idx.gz aligns_by=record_time_us_from_data_header
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2.tar.xz, content_length=25929080
+[replay_server] upload complete target=/tmp/replay_tool_uploads/l2_18.tar.xz, size=25929080
+[replay_server] starting loader thread for root=/tmp/replay_tool_uploads/l2_18.tar.xz
+[replay_server] loader initialized for uploaded archive /tmp/replay_tool_uploads/l2_18.tar.xz
+[replay_server] resolving replay input root=/tmp/replay_tool_uploads/l2_18.tar.xz
+[replay_core] resolve_replay_root input=/tmp/replay_tool_uploads/l2_18.tar.xz
+[replay_core] extracting archive /tmp/replay_tool_uploads/l2_18.tar.xz -> /tmp/replay_tool_extract/l2_18.tar_25929080_1781775261
+[replay_core] finished extracting archive /tmp/replay_tool_uploads/l2_18.tar.xz, resolved root /tmp/replay_tool_extract/l2_18.tar_25929080_1781775261/l2
+[replay_server] resolved replay root=/tmp/replay_tool_extract/l2_18.tar_25929080_1781775261/l2
+[replay_server] scanned 1 map files under /tmp/replay_tool_extract/l2_18.tar_25929080_1781775261/l2/sensor_data/map
+[replay_server] loaded static map from /tmp/replay_tool_extract/l2_18.tar_25929080_1781775261/l2/sensor_data/map/20260617_032206-20260617_032206.data.gz
+[replay_server] starting frame stream for root=/tmp/replay_tool_extract/l2_18.tar_25929080_1781775261/l2
+[replay_server] stream business root=/tmp/replay_tool_extract/l2_18.tar_25929080_1781775261/l2/business_data
+[replay_server] replay data ready root=/tmp/replay_tool_extract/l2_18.tar_25929080_1781775261/l2, business_frames=92093
+[replay_server] indexing local_map refs from root=/tmp/replay_tool_extract/l2_18.tar_25929080_1781775261/l2/sensor_data/local_map
+[replay_server] local_map idx=20260618_062657-20260618_062748.idx.gz aligns_by=record_time_us_from_data_header
+[replay_server] local_map idx=20260618_062746-20260618_063009.idx.gz aligns_by=record_time_us_from_data_header
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2.tar.xz, content_length=25929080
+[replay_server] upload complete target=/tmp/replay_tool_uploads/l2_19.tar.xz, size=25929080
+[replay_server] starting loader thread for root=/tmp/replay_tool_uploads/l2_19.tar.xz
+[replay_server] loader initialized for uploaded archive /tmp/replay_tool_uploads/l2_19.tar.xz
+[replay_server] resolving replay input root=/tmp/replay_tool_uploads/l2_19.tar.xz
+[replay_core] resolve_replay_root input=/tmp/replay_tool_uploads/l2_19.tar.xz
+[replay_core] extracting archive /tmp/replay_tool_uploads/l2_19.tar.xz -> /tmp/replay_tool_extract/l2_19.tar_25929080_1781786281
+[replay_core] finished extracting archive /tmp/replay_tool_uploads/l2_19.tar.xz, resolved root /tmp/replay_tool_extract/l2_19.tar_25929080_1781786281/l2
+[replay_server] resolved replay root=/tmp/replay_tool_extract/l2_19.tar_25929080_1781786281/l2
+[replay_server] scanned 1 map files under /tmp/replay_tool_extract/l2_19.tar_25929080_1781786281/l2/sensor_data/map
+[replay_server] loaded static map from /tmp/replay_tool_extract/l2_19.tar_25929080_1781786281/l2/sensor_data/map/20260617_032206-20260617_032206.data.gz
+[replay_server] starting frame stream for root=/tmp/replay_tool_extract/l2_19.tar_25929080_1781786281/l2
+[replay_server] stream business root=/tmp/replay_tool_extract/l2_19.tar_25929080_1781786281/l2/business_data
+[replay_server] replay data ready root=/tmp/replay_tool_extract/l2_19.tar_25929080_1781786281/l2, business_frames=92093
+[replay_server] indexing local_map refs from root=/tmp/replay_tool_extract/l2_19.tar_25929080_1781786281/l2/sensor_data/local_map
+[replay_server] local_map idx=20260618_062657-20260618_062748.idx.gz aligns_by=record_time_us_from_data_header
+[replay_server] local_map idx=20260618_062746-20260618_063009.idx.gz aligns_by=record_time_us_from_data_header
+[replay_server] local_map idx=20260618_063007-20260618_063201.idx.gz aligns_by=record_time_us_from_data_header
+[replay_server] local_map index ready root=/tmp/replay_tool_extract/l2_19.tar_25929080_1781786281/l2/sensor_data/local_map, refs=2526, records=2526
+Traceback (most recent call last):
+  File "/home/wanghusen/zj-humanoid/log/naviai_log/replay_tool/backend/replay_server.py", line 23, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'
+Traceback (most recent call last):
+  File "/home/wanghusen/zj-humanoid/log/naviai_log/replay_tool/backend/replay_server.py", line 865, in <module>
+    raise SystemExit(main())
+  File "/home/wanghusen/zj-humanoid/log/naviai_log/replay_tool/backend/replay_server.py", line 852, in main
+    server = ThreadingHTTPServer((args.host, args.port), ReplayRequestHandler)
+  File "/home/naviai/miniconda3/envs/py310/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/naviai/miniconda3/envs/py310/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+Traceback (most recent call last):
+  File "/Users/wanghusen/Desktop/code/log/replay_tool/backend/replay_server.py", line 26, in <module>
+    from .replay_core import (
+    ...<21 lines>...
+    )
+ImportError: attempted relative import with no known parent package
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/wanghusen/Desktop/code/log/replay_tool/backend/replay_server.py", line 66, in <module>
+    from replay_core import (
+    ...<21 lines>...
+    )
+  File "/Users/wanghusen/Desktop/code/log/replay_tool/backend/replay_core.py", line 313
+    or (path / "business_data").is_dir()
+    ^^
+SyntaxError: invalid syntax
+Traceback (most recent call last):
+  File "/Users/wanghusen/Desktop/code/log/replay_tool/backend/replay_server.py", line 26, in <module>
+    from .replay_core import (
+ImportError: attempted relative import with no known parent package
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/wanghusen/Desktop/code/log/replay_tool/backend/replay_server.py", line 66, in <module>
+    from replay_core import (
+  File "/Users/wanghusen/Desktop/code/log/replay_tool/backend/replay_core.py", line 313
+    or (path / "business_data").is_dir()
+    ^^
+SyntaxError: invalid syntax
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2_all.tar.xz, content_length=25940584
+[replay_server] upload complete target=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all.tar.xz, size=25940584
+[replay_server] starting loader thread for root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all.tar.xz
+[replay_server] loader initialized for uploaded archive /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all.tar.xz
+[replay_server] resolving replay input root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all.tar.xz
+[replay_core] resolve_replay_root input=/private/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all.tar.xz
+[replay_core] extracting archive /private/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all.tar.xz -> /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all.tar_25940584_1781974419
+[replay_core] finished extracting archive /private/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all.tar.xz, resolved root /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all.tar_25940584_1781974419/l2
+[replay_server] resolved replay root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all.tar_25940584_1781974419/l2
+[replay_server] scanned 1 map files under /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all.tar_25940584_1781974419/l2/static_data
+[replay_server] loaded static map from /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all.tar_25940584_1781974419/l2/static_data/20260618_062206-20260618_062206.data.gz
+[replay_server] starting frame stream for root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all.tar_25940584_1781974419/l2
+[replay_server] stream business root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all.tar_25940584_1781974419/l2/business_data
+[replay_server] replay data ready root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all.tar_25940584_1781974419/l2, business_frames=92093
+[replay_server] indexing local_map refs from root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all.tar_25940584_1781974419/l2/large_data/local_map
+[replay_server] local_map idx=20260618_062657-20260618_062748.idx.gz aligns_by=record_time_us_from_data_header
+[replay_server] local_map idx=20260618_062746-20260618_063009.idx.gz aligns_by=record_time_us_from_data_header
+[replay_server] local_map idx=20260618_063007-20260618_063201.idx.gz aligns_by=record_time_us_from_data_header
+[replay_server] local_map index ready root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all.tar_25940584_1781974419/l2/large_data/local_map, refs=2526, records=2526
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2_all.tar.xz, content_length=25940584
+[replay_server] upload complete target=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all_1.tar.xz, size=25940584
+[replay_server] starting loader thread for root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all_1.tar.xz
+[replay_server] loader initialized for uploaded archive /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all_1.tar.xz
+[replay_server] resolving replay input root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all_1.tar.xz
+[replay_core] resolve_replay_root input=/private/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all_1.tar.xz
+[replay_core] extracting archive /private/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all_1.tar.xz -> /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_1.tar_25940584_1781974674
+[replay_core] finished extracting archive /private/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all_1.tar.xz, resolved root /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_1.tar_25940584_1781974674/l2
+[replay_server] resolved replay root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_1.tar_25940584_1781974674/l2
+[replay_server] scanned 1 map files under /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_1.tar_25940584_1781974674/l2/static_data
+[replay_server] loaded static map from /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_1.tar_25940584_1781974674/l2/static_data/20260618_062206-20260618_062206.data.gz
+[replay_server] starting frame stream for root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_1.tar_25940584_1781974674/l2
+[replay_server] stream business root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_1.tar_25940584_1781974674/l2/business_data
+[replay_server] replay data ready root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_1.tar_25940584_1781974674/l2, business_frames=92093
+[replay_server] indexing local_map refs from root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_1.tar_25940584_1781974674/l2/large_data/local_map
+[replay_server] local_map idx=20260618_062657-20260618_062748.idx.gz aligns_by=message_time_us_from_data_header
+[replay_server] local_map idx=20260618_062746-20260618_063009.idx.gz aligns_by=message_time_us_from_data_header
+[replay_server] local_map idx=20260618_063007-20260618_063201.idx.gz aligns_by=message_time_us_from_data_header
+[replay_server] local_map index ready root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_1.tar_25940584_1781974674/l2/large_data/local_map, refs=2526, records=2526
+L2 replay web viewer listening on http://0.0.0.0:8765
+Open from your browser: http://<machine-ip>:8765
+[replay_server] receiving upload filename=l2_all.tar.xz, content_length=25940584
+[replay_server] upload complete target=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all_2.tar.xz, size=25940584
+[replay_server] starting loader thread for root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all_2.tar.xz
+[replay_server] loader initialized for uploaded archive /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all_2.tar.xz
+[replay_server] resolving replay input root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all_2.tar.xz
+[replay_core] resolve_replay_root input=/private/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all_2.tar.xz
+[replay_core] extracting archive /private/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all_2.tar.xz -> /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_2.tar_25940584_1781975176
+[replay_core] finished extracting archive /private/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_uploads/l2_all_2.tar.xz, resolved root /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_2.tar_25940584_1781975176/l2
+[replay_server] resolved replay root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_2.tar_25940584_1781975176/l2
+[replay_server] scanned 1 map files under /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_2.tar_25940584_1781975176/l2/static_data
+[replay_server] loaded static map from /var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_2.tar_25940584_1781975176/l2/static_data/20260618_062206-20260618_062206.data.gz
+[replay_server] starting frame stream for root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_2.tar_25940584_1781975176/l2
+[replay_server] stream business root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_2.tar_25940584_1781975176/l2/business_data
+[replay_server] replay data ready root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_2.tar_25940584_1781975176/l2, business_frames=92093
+[replay_server] indexing local_map refs from root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_2.tar_25940584_1781975176/l2/large_data/local_map
+[replay_server] local_map idx=20260618_062657-20260618_062748.idx.gz aligns_by=message_time_us_from_idx
+[replay_server] local_map idx=20260618_062746-20260618_063009.idx.gz aligns_by=message_time_us_from_idx
+[replay_server] local_map idx=20260618_063007-20260618_063201.idx.gz aligns_by=message_time_us_from_idx
+[replay_server] local_map index ready root=/var/folders/fk/9qtc4ydx7312dm97z81b93lr0000gn/T/replay_tool_extract/l2_all_2.tar_25940584_1781975176/l2/large_data/local_map, refs=2526, records=2526
