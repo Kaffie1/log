@@ -2,6 +2,7 @@
 
 #include "log_types.hpp"
 
+#include <spdlog/async.h>
 #include <spdlog/common.h>
 
 namespace naviai::log {

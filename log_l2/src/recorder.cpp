@@ -9,6 +9,7 @@
 
 #include <zlib.h>
 
+#include "log_service.hpp"
 #include "operation.hpp"
 
 namespace naviai::log::l2_log {
@@ -37,29 +38,25 @@ std::uint64_t ClampSegmentSizeBytes(std::uint64_t value) {
     return value;
 }
 
-std::string BuildSegmentFileStem(int64_t start_record_time_us,
-                                 int64_t end_record_time_us,
-                                 bool include_end_time) {
-    const std::string start = FormatSegmentTime(start_record_time_us);
-    if (!include_end_time) {
-        return start + "-";
-    }
-    return start + "-" + FormatSegmentTime(end_record_time_us);
-}
-
 const char* SampleModeRecordTag(L2SampleMode mode) {
     return mode == L2SampleMode::LowFrequency ? "low_5s" : "idle_1hz";
 }
 
-std::filesystem::path BuildFinalSegmentPath(const StorageRuntime& runtime,
-                                            const std::filesystem::path& source_path,
-                                            const char* extension,
-                                            bool include_end_time) {
-    return source_path.parent_path() /
-           (BuildSegmentFileStem(runtime.segment_start_message_time_us,
-                                 runtime.segment_end_message_time_us,
-                                 include_end_time) +
-            extension);
+LogService BuildReplayNamingService() {
+    return LogService(BuildReplaySessionRoot());
+}
+
+std::optional<FileNamingPlan> BuildSegmentPlan(const std::string& bucket_name,
+                                               const char* extension,
+                                               int64_t start_time_us,
+                                               std::optional<int64_t> end_time_us) {
+    auto service = BuildReplayNamingService();
+    const std::string suffix =
+        extension[0] == '.' ? std::string(extension + 1) : std::string(extension);
+    if (end_time_us.has_value()) {
+        return service.BuildSealedFilePlan(bucket_name, suffix, start_time_us, end_time_us);
+    }
+    return service.BuildActiveFilePlan(bucket_name, suffix, start_time_us);
 }
 
 std::uint64_t ResolveSegmentSizeBytes(const StorageRuntime& runtime) {
@@ -145,6 +142,55 @@ bool TryParseStartTimeFromReplayPath(const std::filesystem::path& path,
     }
     *start_time_us = static_cast<int64_t>(std::mktime(&tm_buf)) * 1000000LL;
     return *start_time_us > 0;
+}
+
+std::filesystem::path BuildSegmentVariantPath(const std::filesystem::path& path,
+                                              std::uint32_t suffix) {
+    const auto extension = path.extension().string();
+    const auto stem = path.stem().string();
+    std::ostringstream oss;
+    oss << stem << "_part_" << suffix << extension;
+    return path.parent_path() / oss.str();
+}
+
+void ResolveClosedSegmentPaths(std::filesystem::path* data_path,
+                               std::filesystem::path* index_path) {
+    if (data_path == nullptr || index_path == nullptr ||
+        data_path->empty() || index_path->empty()) {
+        return;
+    }
+
+    std::error_code ec;
+    const bool data_exists = std::filesystem::exists(*data_path, ec) ||
+                             std::filesystem::exists(
+                                 std::filesystem::path(data_path->string() + ".gz"), ec);
+    ec.clear();
+    const bool index_exists = std::filesystem::exists(*index_path, ec) ||
+                              std::filesystem::exists(
+                                  std::filesystem::path(index_path->string() + ".gz"), ec);
+    if (!data_exists && !index_exists) {
+        return;
+    }
+
+    for (std::uint32_t suffix = 1; suffix < 1000000; ++suffix) {
+        const auto candidate_data = BuildSegmentVariantPath(*data_path, suffix);
+        const auto candidate_index = BuildSegmentVariantPath(*index_path, suffix);
+        const bool candidate_data_exists =
+            std::filesystem::exists(candidate_data, ec) ||
+            std::filesystem::exists(
+                std::filesystem::path(candidate_data.string() + ".gz"), ec);
+        ec.clear();
+        const bool candidate_index_exists =
+            std::filesystem::exists(candidate_index, ec) ||
+            std::filesystem::exists(
+                std::filesystem::path(candidate_index.string() + ".gz"), ec);
+        ec.clear();
+        if (!candidate_data_exists && !candidate_index_exists) {
+            *data_path = candidate_data;
+            *index_path = candidate_index;
+            return;
+        }
+    }
 }
 
 bool IsEpochYearStartTimeUs(int64_t start_time_us) {
@@ -235,8 +281,24 @@ void RenameActiveTopicStorage(StorageRuntime* runtime) {
     }
 
     std::error_code ec;
-    const auto final_data_path =
-        BuildFinalSegmentPath(*runtime, runtime->data_path, ".data", true);
+    const auto final_data_plan = BuildSegmentPlan(runtime->bucket_name,
+                                                  ".data",
+                                                  runtime->segment_start_message_time_us,
+                                                  runtime->segment_end_message_time_us);
+    const auto final_index_plan = BuildSegmentPlan(runtime->bucket_name,
+                                                   ".idx",
+                                                   runtime->segment_start_message_time_us,
+                                                   runtime->segment_end_message_time_us);
+    if (!final_data_plan.has_value() || !final_index_plan.has_value()) {
+        return;
+    }
+
+    auto final_data_path = final_data_plan->path;
+    auto final_index_path = final_index_plan->path;
+    if (final_data_path != runtime->data_path || final_index_path != runtime->index_path) {
+        ResolveClosedSegmentPaths(&final_data_path, &final_index_path);
+    }
+
     if (final_data_path != runtime->data_path) {
         std::filesystem::rename(runtime->data_path, final_data_path, ec);
         if (!ec) {
@@ -246,8 +308,6 @@ void RenameActiveTopicStorage(StorageRuntime* runtime) {
         }
     }
 
-    const auto final_index_path =
-        BuildFinalSegmentPath(*runtime, runtime->index_path, ".idx", true);
     if (final_index_path != runtime->index_path) {
         std::filesystem::rename(runtime->index_path, final_index_path, ec);
         if (!ec) {
@@ -566,9 +626,15 @@ std::string FormatSegmentTime(int64_t message_time_us) {
 
 std::filesystem::path BuildSessionMetaPath(int64_t start_message_time_us,
                                            int64_t end_message_time_us) {
-    return BuildReplaySessionRoot() /
-           (FormatSegmentTime(start_message_time_us) + "-" +
-            FormatSegmentTime(end_message_time_us) + ".meta");
+    auto service = BuildReplayNamingService();
+    const auto plan =
+        service.BuildSealedFilePlan("", "meta", start_message_time_us, end_message_time_us);
+    if (!plan.has_value()) {
+        return BuildReplaySessionRoot() /
+               (FormatSegmentTime(start_message_time_us) + "-" +
+                FormatSegmentTime(end_message_time_us) + ".meta");
+    }
+    return plan->path;
 }
 
 void RefreshSessionMetaFile(int64_t message_time_us, bool force_rename) {
@@ -636,9 +702,8 @@ void EnsureTopicStorage(StorageRuntime* runtime, int64_t initial_message_time_us
         return;
     }
 
-    const auto topic_root = BuildReplaySessionRoot() / runtime->bucket_name;
     std::error_code ec;
-    std::filesystem::create_directories(topic_root, ec);
+    std::filesystem::create_directories(BuildReplaySessionRoot() / runtime->bucket_name, ec);
 
     const int64_t effective_time_us = ResolveMessageTimeUs(initial_message_time_us);
     if (runtime->segment_start_message_time_us <= 0) {
@@ -648,12 +713,19 @@ void EnsureTopicStorage(StorageRuntime* runtime, int64_t initial_message_time_us
         runtime->segment_end_message_time_us = effective_time_us;
     }
 
-    const auto file_stem =
-        BuildSegmentFileStem(runtime->segment_start_message_time_us,
-                             runtime->segment_end_message_time_us,
-                             runtime->segment_index > 0);
-    runtime->data_path = topic_root / (file_stem + ".data");
-    runtime->index_path = topic_root / (file_stem + ".idx");
+    const auto data_plan = BuildSegmentPlan(runtime->bucket_name,
+                                            ".data",
+                                            runtime->segment_start_message_time_us,
+                                            std::nullopt);
+    const auto index_plan = BuildSegmentPlan(runtime->bucket_name,
+                                             ".idx",
+                                             runtime->segment_start_message_time_us,
+                                             std::nullopt);
+    if (!data_plan.has_value() || !index_plan.has_value()) {
+        throw std::runtime_error("failed to build replay segment naming plan");
+    }
+    runtime->data_path = data_plan->path;
+    runtime->index_path = index_plan->path;
     runtime->data_stream.open(runtime->data_path,
                               std::ios::out | std::ios::app | std::ios::binary);
     runtime->index_stream.open(runtime->index_path, std::ios::out | std::ios::app);
@@ -709,7 +781,6 @@ void SwitchTopicStorage(StorageRuntime* runtime, int64_t next_message_time_us) {
     if (!runtime->recent_records.empty()) {
         runtime->last_rename_time_bucket_us =
             runtime->segment_end_message_time_us / kRenameIntervalUs;
-        RenameActiveTopicStorage(runtime);
     }
 }
 
@@ -848,7 +919,6 @@ void WriteReplayRecord(const TopicRuntime& runtime,
     if (storage->segment_index > 0 &&
         rename_bucket_us > storage->last_rename_time_bucket_us) {
         storage->last_rename_time_bucket_us = rename_bucket_us;
-        RenameActiveTopicStorage(storage);
     }
     RefreshSessionMetaFile(header.message_time_us, false);
 }

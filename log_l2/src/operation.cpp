@@ -14,6 +14,7 @@
 
 #include "business_data.hpp"
 #include "large_data.hpp"
+#include "log_service.hpp"
 #include "recorder.hpp"
 #include "static_data.hpp"
 
@@ -26,6 +27,7 @@ constexpr char kTopicRecordLogOutputGroup[] = "replay/topic_record";
 constexpr char kStaticMapTopicRecordLogModuleName[] = "l2_topic_record_map";
 constexpr char kStaticMapTopicRecordLogOutputGroup[] = "replay/static_map";
 constexpr char kStaticMapTopic[] = "/zj_humanoid/navigation/map";
+bool g_recovery_checked_once = false;
 
 struct SegmentFileGroup {
     std::filesystem::path data_path;
@@ -198,32 +200,15 @@ bool ReadSegmentTimeRangeFromMaybeCompressedIndex(
     return true;
 }
 
-std::filesystem::path BuildRecoveredSegmentPath(const std::filesystem::path& source_path,
-                                                int64_t start_message_time_us,
-                                                int64_t end_message_time_us,
-                                                const char* extension) {
-    const std::string start = FormatSegmentTime(start_message_time_us);
-    const std::string end = FormatSegmentTime(end_message_time_us);
-    std::filesystem::path candidate =
-        source_path.parent_path() / (start + "-" + end + extension);
-    if (!std::filesystem::exists(candidate)) {
-        return candidate;
-    }
-
-    for (std::uint32_t suffix = 1; suffix < 1000000; ++suffix) {
-        std::ostringstream oss;
-        oss << start << "-" << end << "_recovered_" << suffix << extension;
-        candidate = source_path.parent_path() / oss.str();
-        if (!std::filesystem::exists(candidate)) {
-            return candidate;
-        }
-    }
-
-    return source_path;
-}
-
 void RenameRecoveredSegmentPair(const std::filesystem::path& data_path,
                                 const std::filesystem::path& index_path) {
+    const auto replay_root = BuildReplaySessionRoot();
+    LogService naming_service(replay_root);
+    if (!naming_service.IsActiveFilePath(data_path) ||
+        !naming_service.IsActiveFilePath(index_path)) {
+        return;
+    }
+
     int64_t start_message_time_us = 0;
     int64_t end_message_time_us = 0;
     if (!ReadSegmentTimeRangeFromIndex(index_path, &start_message_time_us,
@@ -232,31 +217,26 @@ void RenameRecoveredSegmentPair(const std::filesystem::path& data_path,
         return;
     }
 
-    std::error_code ec;
-    const auto recovered_data_path =
-        BuildRecoveredSegmentPath(data_path, start_message_time_us, end_message_time_us,
-                                  ".data");
-    const auto recovered_index_path =
-        BuildRecoveredSegmentPath(index_path, start_message_time_us, end_message_time_us,
-                                  ".idx");
-
-    if (recovered_data_path != data_path) {
-        std::filesystem::rename(data_path, recovered_data_path, ec);
-        if (ec) {
-            return;
-        }
-    }
-
-    ec.clear();
-    if (recovered_index_path != index_path) {
-        std::filesystem::rename(index_path, recovered_index_path, ec);
-    }
+    naming_service.RecoverActiveFiles({data_path, index_path}, end_message_time_us);
 }
 
 void RecoverReplayFilesBeforeStart(const std::filesystem::path& replay_root) {
     std::error_code ec;
     if (replay_root.empty() || !std::filesystem::exists(replay_root, ec)) {
         return;
+    }
+
+    for (const auto& entry : std::filesystem::directory_iterator(replay_root, ec)) {
+        if (ec) {
+            break;
+        }
+        const auto name = entry.path().filename().string();
+        if (name.find("shutdown") == std::string::npos ||
+            name.find("bundle") == std::string::npos) {
+            continue;
+        }
+        std::filesystem::remove_all(entry.path(), ec);
+        ec.clear();
     }
 
     for (const auto& entry : std::filesystem::recursive_directory_iterator(replay_root)) {
@@ -277,24 +257,6 @@ void RecoverReplayFilesBeforeStart(const std::filesystem::path& replay_root) {
         RenameRecoveredSegmentPair(data_path, path);
     }
 
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(replay_root)) {
-        if (!entry.is_regular_file()) {
-            continue;
-        }
-
-        const auto path = entry.path();
-        const auto extension = path.extension().string();
-        if (extension != ".data" && extension != ".idx") {
-            continue;
-        }
-
-        const auto gzip_path = std::filesystem::path(path.string() + ".gz");
-        if (std::filesystem::exists(gzip_path, ec)) {
-            continue;
-        }
-
-        CompressFileToGzip(path);
-    }
 }
 
 void CollectTopicRecordLogFiles(const std::filesystem::path& root_dir,
@@ -491,6 +453,7 @@ const char* TopicRecordLogModuleNameForTopic(std::string_view topic) {
 
 void InitRecorder(const L2RecorderOptions& options) {
     auto& state = State();
+    state.initialized = false;
     state.options = options;
     state.session_id = options.session_id.empty()
                            ? ("session_" + std::to_string(NowTimestampUs()))
@@ -505,11 +468,11 @@ void InitRecorder(const L2RecorderOptions& options) {
     state.task_idle_deadline_us = 0;
     state.topics.clear();
     state.storage_buckets.clear();
-    state.initialized = true;
     const auto replay_root = BuildReplaySessionRoot();
-    std::error_code ec;
-    std::filesystem::create_directories(replay_root, ec);
-    RecoverReplayFilesBeforeStart(replay_root);
+    if (!g_recovery_checked_once) {
+        RecoverReplayFilesBeforeStart(replay_root);
+        g_recovery_checked_once = true;
+    }
     CleanupExpiredReplayFiles();
     for (const auto& descriptor : options.topics) {
         const auto category = StorageBucketCategory(BuildStorageBucketName(descriptor));
@@ -523,6 +486,7 @@ void InitRecorder(const L2RecorderOptions& options) {
         }
         RegisterBusinessTopic(descriptor);
     }
+    state.initialized = true;
 }
 
 void SetSampleMode(L2SampleMode mode) {
@@ -574,7 +538,7 @@ void SealActiveSegments() {
         FlushPendingTopic(&item.second, "front_control_seal");
     }
     for (auto& item : state.storage_buckets) {
-        FinalizeTopicStorage(&item.second, true);
+        FinalizeTopicStorage(&item.second, false);
     }
     if (state.session_end_message_time_us > 0) {
         RefreshSessionMetaFile(state.session_end_message_time_us, true);
@@ -585,6 +549,9 @@ void SealActiveSegments() {
 void PackageRecords(const std::string& bundle_dir) {
     auto& state = State();
     FlushAll();
+    for (auto& item : state.storage_buckets) {
+        FinalizeTopicStorage(&item.second, false);
+    }
     if (state.session_end_message_time_us > 0) {
         RefreshSessionMetaFile(state.session_end_message_time_us, true);
     }
@@ -701,8 +668,9 @@ void FlushAll() {
 
 void ShutdownAll() {
     auto& state = State();
+    FlushAll();
     for (auto& item : state.storage_buckets) {
-        FinalizeTopicStorage(&item.second, true);
+        FinalizeTopicStorage(&item.second, false);
     }
     if (state.session_end_message_time_us > 0) {
         RefreshSessionMetaFile(state.session_end_message_time_us, true);

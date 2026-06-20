@@ -66,6 +66,16 @@ LogAgentResult LogAgent::CompressNow() {
     return RunCompressLocked();
 }
 
+LogAgentResult LogAgent::DrainNow() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    RunScanLocked();
+    RunRecoverLocked();
+    RunScanLocked();
+    auto result = RunCompressLocked();
+    RunScanLocked();
+    return result;
+}
+
 LogAgentResult LogAgent::CleanupNow(bool dry_run) {
     std::lock_guard<std::mutex> lock(mutex_);
     return RunCleanupLocked(dry_run);
@@ -108,7 +118,10 @@ void LogAgent::WorkerLoop() {
 
     if (state_.schedule_state.draining_before_exit) {
         RunScanLocked();
+        RunRecoverLocked();
+        RunScanLocked();
         RunCompressLocked();
+        RunScanLocked();
     }
 }
 

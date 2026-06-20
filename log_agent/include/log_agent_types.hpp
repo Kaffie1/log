@@ -22,7 +22,7 @@ struct FileGovernPolicy {
     std::int64_t scan_interval_ms{5LL * 1000LL};
     std::int64_t cleanup_interval_ms{60LL * 1000LL};
     std::size_t compress_retry_limit{3};
-    bool delete_raw_after_compress{false};
+    bool delete_raw_after_compress{true};
 };
 
 struct AbnormalLogSession {

@@ -3,9 +3,13 @@
 #include <stdexcept>
 #include <unordered_set>
 
+#include "ros_common.hpp"
+
 namespace naviai::log {
 
 namespace {
+
+using namespace l2_ros;
 
 constexpr std::uint64_t kDefaultReplaySegmentSizeBytes =
     500ULL * 1024ULL * 1024ULL;
@@ -54,83 +58,17 @@ std::string Base64Encode(const std::string& data) {
 
 const std::vector<L2RosTopicDescriptor>& ReplayTopicCatalog() {
     static const std::vector<L2RosTopicDescriptor> topics = {
-        {"/zj_humanoid/navigation/odom_info",
-         "nav_msgs/Odometry",
-         "location",
-         L2SourceDomain::Algorithm,
-         "localization",
-         kDefaultReplaySegmentSizeBytes,
-         0},
-        {"/zj_humanoid/navigation/map",
-         "nav_msgs/OccupancyGrid",
-         "map_server",
-         L2SourceDomain::Algorithm,
-         "map",
-         kDefaultReplaySegmentSizeBytes,
-         0},
-        {"/zj_humanoid/navigation/local_map",
-         "navigation/LocalMap",
-         "perception",
-         L2SourceDomain::Algorithm,
-         "local_map",
-         kLargeLocalMapSegmentSizeBytes,
-         kTargetCompressedSegmentSizeBytes},
-        {"/zj_humanoid/perception/location_code",
-         "module_common_msgs/ModuleStatus",
-         "location",
-         L2SourceDomain::Algorithm,
-         "location_status",
-         kDefaultReplaySegmentSizeBytes,
-         0},
-        {"/zj_humanoid/perception/perception_code",
-         "module_common_msgs/ModuleStatus",
-         "perception",
-         L2SourceDomain::Algorithm,
-         "perception_status",
-         kDefaultReplaySegmentSizeBytes,
-         0},
-        {"/zj_humanoid/navigation/navigation_code",
-         "navigation/ModuleStatus",
-         "navigation",
-         L2SourceDomain::Algorithm,
-         "navigation_status",
-         kDefaultReplaySegmentSizeBytes,
-         0},
-        {"/zj_humanoid/chassis/agv_state",
-         "chassis_msgs/AGVState",
-         "chassis",
-         L2SourceDomain::Algorithm,
-         "agv_state",
-         kDefaultReplaySegmentSizeBytes,
-         0},
-        {"/zj_humanoid/cmd_vel/calib",
-         "geometry_msgs/Twist",
-         "chassis",
-         L2SourceDomain::Algorithm,
-         "control",
-         kDefaultReplaySegmentSizeBytes,
-         0},
-        {"/zj_humanoid/navigation/navigation/goal",
-         "navigation/NavigationActionGoal",
-         "navigation",
-         L2SourceDomain::Algorithm,
-         "navigation_action",
-         kDefaultReplaySegmentSizeBytes,
-         0},
-        {"/zj_humanoid/navigation/navigation/feedback",
-         "navigation/NavigationActionFeedback",
-         "navigation",
-         L2SourceDomain::Algorithm,
-         "navigation_action",
-         kDefaultReplaySegmentSizeBytes,
-         0},
-        {"/zj_humanoid/navigation/navigation/result",
-         "navigation/NavigationActionResult",
-         "navigation",
-         L2SourceDomain::Algorithm,
-         "navigation_action",
-         kDefaultReplaySegmentSizeBytes,
-         0},
+        {kOdomInfoTopic, "nav_msgs/Odometry", "location", L2SourceDomain::Algorithm, "localization", kDefaultReplaySegmentSizeBytes, 0},
+        {kMapTopic, "nav_msgs/OccupancyGrid", "map_server", L2SourceDomain::Algorithm, "map", kDefaultReplaySegmentSizeBytes, 0},
+        {kLocalMapTopic, "navigation/LocalMap", "perception", L2SourceDomain::Algorithm, "local_map", kLargeLocalMapSegmentSizeBytes, kTargetCompressedSegmentSizeBytes},
+        {kLocationCodeTopic, "module_common_msgs/ModuleStatus", "location", L2SourceDomain::Algorithm, "location_status", kDefaultReplaySegmentSizeBytes, 0},
+        {kPerceptionCodeTopic, "module_common_msgs/ModuleStatus", "perception", L2SourceDomain::Algorithm, "perception_status", kDefaultReplaySegmentSizeBytes, 0},
+        {kNavigationCodeTopic, "navigation/ModuleStatus", "navigation", L2SourceDomain::Algorithm, "navigation_status", kDefaultReplaySegmentSizeBytes, 0},
+        {kChassisAgvStateTopic, "chassis_msgs/AGVState", "chassis", L2SourceDomain::Algorithm, "agv_state", kDefaultReplaySegmentSizeBytes, 0},
+        {kCmdVelCalibTopic, "geometry_msgs/Twist", "chassis", L2SourceDomain::Algorithm, "control", kDefaultReplaySegmentSizeBytes, 0},
+        {kNavigationGoalTopic, "navigation/NavigationActionGoal", "navigation", L2SourceDomain::Algorithm, "navigation_action", kDefaultReplaySegmentSizeBytes, 0},
+        {kNavigationFeedbackTopic, "navigation/NavigationActionFeedback", "navigation", L2SourceDomain::Algorithm, "navigation_action", kDefaultReplaySegmentSizeBytes, 0},
+        {kNavigationResultTopic, "navigation/NavigationActionResult", "navigation", L2SourceDomain::Algorithm, "navigation_action", kDefaultReplaySegmentSizeBytes, 0},
     };
     return topics;
 }

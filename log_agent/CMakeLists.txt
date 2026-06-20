@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(ZLIB REQUIRED)
+find_package(Threads REQUIRED)
 
 add_library(log_agent STATIC
     src/log_agent.cpp
@@ -24,4 +25,14 @@ target_include_directories(log_agent
 target_link_libraries(log_agent
     PUBLIC
         ZLIB::ZLIB
+        Threads::Threads
+)
+
+add_executable(log_agent_demo
+    examples/demo.cpp
+)
+
+target_link_libraries(log_agent_demo
+    PRIVATE
+        log_agent
 )

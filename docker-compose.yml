@@ -1,0 +1,21 @@
+services:
+  ros1-dev:
+    platform: ${DOCKER_PLATFORM:-linux/arm64/v8}
+    build:
+      context: .
+      dockerfile: docker/ros1-noetic/Dockerfile
+    image: log/ros1-noetic-dev:latest
+    container_name: log-ros1-dev
+    working_dir: /workspaces/log
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/workspaces/log
+      - ros-home:/root
+      - ./runtime/var-log:/var/log
+    environment:
+      ROS_DISTRO: noetic
+    command: bash
+
+volumes:
+  ros-home:

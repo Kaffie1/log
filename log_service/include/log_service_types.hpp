@@ -3,19 +3,18 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <optional>
 #include <string>
 #include <vector>
 
 namespace naviai::log {
 
-struct ActiveFileSession {
-    std::filesystem::path active_path;
+struct FileNamingPlan {
+    std::filesystem::path path;
     std::string file_type;
     std::string file_suffix;
     std::int64_t start_time_us{0};
-    bool switching{false};
-    std::size_t buffered_records{0};
+    std::int64_t end_time_us{0};
+    bool sealed{false};
 };
 
 struct LogServicePolicy {
@@ -37,6 +36,13 @@ struct OperationResult {
     bool success{false};
     std::string message;
     std::filesystem::path path;
+};
+
+struct RecoveryTask {
+    bool success{false};
+    std::string message;
+    std::vector<std::filesystem::path> source_paths;
+    std::vector<std::filesystem::path> recovered_paths;
 };
 
 struct QueryResult {
@@ -67,9 +73,7 @@ struct DeliveryTask {
 };
 
 struct LogServiceState {
-    std::optional<ActiveFileSession> active_session;
     LogServicePolicy policy;
-    bool writer_activated{false};
 };
 
 }  // namespace naviai::log

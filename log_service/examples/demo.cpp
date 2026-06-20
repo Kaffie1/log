@@ -1,39 +1,29 @@
 #include "log_service.hpp"
 
+#include <fstream>
 #include <iostream>
 
 int main() {
     naviai::log::LogService service("/tmp/log_service_demo");
 
-    naviai::log::LoggerConfig base_config;
-    base_config.level = naviai::log::LogLevel::Debug;
-    base_config.enable_console_sink = true;
+    const auto active_plan =
+        service.BuildActiveFilePlan("navigation", "log", 1760880000000000LL);
+    const auto sealed_plan =
+        service.BuildSealedFilePlan("navigation",
+                                    "log",
+                                    1760880000000000LL,
+                                    1760880060000000LL);
+    std::cout << "active_plan: " << static_cast<bool>(active_plan) << " "
+              << (active_plan ? active_plan->path.string() : "") << '\n';
+    std::cout << "sealed_plan: " << static_cast<bool>(sealed_plan) << " "
+              << (sealed_plan ? sealed_plan->path.string() : "") << '\n';
 
-    auto create_result =
-        service.CreateActiveFileAndActivateWriter("navigation", "log", base_config);
-    std::cout << "create_and_activate: " << create_result.success << " "
-              << create_result.path.string() << '\n';
-
-    auto write_result =
-        service.WriteLog("LOCALIZATION", naviai::log::LogLevel::Info, "planner start");
-    std::cout << "write: " << write_result.success << " "
-              << write_result.message << '\n';
-
-    auto writer_config = service.BuildWriterConfig();
-    std::cout << "writer_config: " << static_cast<bool>(writer_config) << '\n';
-    if (writer_config.has_value()) {
-        std::cout << "writer_root: " << writer_config->root_dir
-                  << " file: " << writer_config->file_name << '\n';
+    if (sealed_plan.has_value()) {
+        std::filesystem::create_directories(sealed_plan->path.parent_path());
+        std::ofstream output(sealed_plan->path, std::ios::out | std::ios::trunc);
+        output << "[2026-06-20 10:00:00.000000] [INFO] [LOCALIZATION] planner start\n";
+        output << "[2026-06-20 10:00:05.000000] [WARN] [LOCALIZATION] planner tick\n";
     }
-
-    auto switch_result = service.SwitchSegmentAndActivateWriter(base_config);
-    std::cout << "switch_and_activate: " << switch_result.success << " "
-              << switch_result.path.string() << '\n';
-
-    auto write_result_after_switch =
-        service.WriteLog("LOCALIZATION", naviai::log::LogLevel::Warn, "planner tick");
-    std::cout << "write_after_switch: " << write_result_after_switch.success << " "
-              << write_result_after_switch.message << '\n';
 
     naviai::log::QueryCondition condition;
     condition.module_name = "LOCALIZATION";

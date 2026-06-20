@@ -9,6 +9,7 @@ namespace naviai::log {
 namespace {
 
 constexpr char kCompressedSuffix[] = ".gz";
+constexpr char kMetaSuffix[] = ".meta";
 constexpr char kSealedState[] = "sealed";
 
 }  // namespace
@@ -21,7 +22,7 @@ LogAgentResult LogAgent::RunCompressLocked() {
         if (file.file_state != kSealedState) {
             continue;
         }
-        if (file.path.extension() == kCompressedSuffix) {
+        if (!ShouldCompressFile(file)) {
             continue;
         }
 
@@ -44,6 +45,13 @@ LogAgentResult LogAgent::RunCompressLocked() {
         pending > compressed ? pending - compressed : 0;
     RunScanLocked();
     return {true, "compression pass completed", compressed};
+}
+
+bool LogAgent::ShouldCompressFile(const LogFileEntry& file) {
+    if (file.path.extension() == kCompressedSuffix) {
+        return false;
+    }
+    return file.path.extension() != kMetaSuffix;
 }
 
 bool LogAgent::CompressFileToGzip(const std::filesystem::path& source_path,

@@ -128,12 +128,15 @@ bool LogAgent::ReadLastTimestampFromIndexFile(const std::filesystem::path& path,
     while (std::getline(iss, field, '\t')) {
         fields.push_back(field);
     }
-    if (fields.size() < 3) {
+    if (fields.size() < 2) {
         return false;
     }
 
     try {
-        *time_us = std::stoll(fields[2]);
+        // L2 indexes store the file lifecycle timestamp in column 2
+        // (offset\trecord_time_us\tmessage_time_us...). Recovery should use
+        // the last recorded log time instead of current system time.
+        *time_us = std::stoll(fields[1]);
         return *time_us > 0;
     } catch (...) {
         return false;

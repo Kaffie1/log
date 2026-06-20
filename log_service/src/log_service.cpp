@@ -6,10 +6,10 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
-#include <mutex>
 #include <sstream>
 #include <stdexcept>
 #include <system_error>
+#include <unordered_set>
 
 namespace naviai::log {
 namespace {
@@ -26,7 +26,12 @@ bool HasMatchingSuffix(const std::filesystem::path& path,
     if (suffix.empty()) {
         return true;
     }
-    return path.extension() == ("." + TrimLeadingDot(suffix));
+    const auto name = path.filename().string();
+    const auto dot_pos = name.find('.');
+    if (dot_pos == std::string::npos || dot_pos + 1 >= name.size()) {
+        return false;
+    }
+    return name.substr(dot_pos + 1) == TrimLeadingDot(suffix);
 }
 
 bool Intersects(std::int64_t lhs_start,
@@ -138,341 +143,165 @@ bool IsPackagedArtifact(const std::filesystem::path& file_path,
     return false;
 }
 
+std::filesystem::path BuildRecoveredVariantPath(const std::filesystem::path& path,
+                                                std::uint32_t suffix) {
+    const auto extension = path.extension().string();
+    const auto stem = path.stem().string();
+    std::ostringstream oss;
+    oss << stem << "_recovered_" << suffix << extension;
+    return path.parent_path() / oss.str();
+}
+
+bool ArePathsAvailable(const std::vector<std::filesystem::path>& paths) {
+    std::error_code ec;
+    std::unordered_set<std::string> unique_paths;
+    for (const auto& path : paths) {
+        const auto normalized = path.lexically_normal().string();
+        if (!unique_paths.insert(normalized).second) {
+            return false;
+        }
+        if (std::filesystem::exists(path, ec)) {
+            return false;
+        }
+        ec.clear();
+    }
+    return true;
+}
+
 }  // namespace
 
 LogService::LogService(std::filesystem::path root_dir, LogServicePolicy policy)
     : root_dir_(std::move(root_dir)), policy_(policy) {}
 
-OperationResult LogService::CreateActiveFile(const std::string& file_type,
-                                             const std::string& file_suffix) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    return CreateActiveFileLocked(NormalizeFileType(file_type), file_suffix);
-}
-
-OperationResult LogService::CreateActiveFileAndActivateWriter(
+std::optional<FileNamingPlan> LogService::BuildActiveFilePlan(
     const std::string& file_type,
     const std::string& file_suffix,
-    const LoggerConfig& base_config) {
-    std::unique_lock<std::mutex> lock(mutex_);
+    std::optional<std::int64_t> start_time_us) const {
     const auto normalized_file_type = NormalizeFileType(file_type);
-
-    auto activation_guard = PrepareWriterActivationLocked(normalized_file_type);
-    if (!activation_guard.success) {
-        return activation_guard;
+    if (!IsFileTypeSafe(normalized_file_type) || file_suffix.empty()) {
+        return std::nullopt;
     }
 
-    auto create_result =
-        CreateActiveFileLocked(normalized_file_type, file_suffix);
-    if (!create_result.success) {
-        return create_result;
-    }
-
-    auto config = BuildWriterConfigLocked(base_config);
-    if (!config.has_value()) {
-        return {false, "active session not found", {}};
-    }
-    writer_base_config_ = base_config;
-    auto* session = FindActiveSessionLocked();
-    if (session != nullptr) {
-        session->switching = true;
-    }
-
-    lock.unlock();
-    OperationResult activate_result;
-    try {
-        LogManager::Init(*config);
-        activate_result = {true,
-                           "writer activated",
-                           std::filesystem::path(config->root_dir) /
-                               config->file_name};
-    } catch (const std::exception& e) {
-        activate_result = {false, e.what(), config->root_dir};
-    } catch (...) {
-        activate_result = {false, "failed to activate writer", config->root_dir};
-    }
-    lock.lock();
-    if (!activate_result.success) {
-        session = FindActiveSessionLocked();
-        if (session != nullptr) {
-            session->switching = false;
-        }
-        switch_cv_.notify_all();
-        return activate_result;
-    }
-    auto flush_result = FlushBufferedLogsLocked();
-    if (!flush_result.success) {
-        flush_result.message += ", writer remains in switching state";
-        return flush_result;
-    }
-    writer_activated_ = true;
-    session = FindActiveSessionLocked();
-    if (session != nullptr) {
-        session->switching = false;
-    }
-    switch_cv_.notify_all();
-    return activate_result;
+    FileNamingPlan plan;
+    plan.file_type = normalized_file_type;
+    plan.file_suffix = TrimLeadingDot(file_suffix);
+    plan.start_time_us = std::max<std::int64_t>(
+        start_time_us.value_or(NowMicroseconds()), 1);
+    plan.path = BuildActivePath(plan.file_type, plan.file_suffix, plan.start_time_us);
+    plan.sealed = false;
+    return plan;
 }
 
-OperationResult LogService::CreateActiveFileLocked(const std::string& file_type,
-                                                   const std::string& file_suffix) {
-    if (file_type.empty() || file_suffix.empty()) {
-        return {false, "file_type and file_suffix must not be empty", {}};
-    }
-    if (!IsFileTypeSafe(file_type)) {
-        return {false, "file_type contains unsupported path pattern", {}};
-    }
-    if (active_session_.has_value()) {
-        return {false, "active session already exists for this service instance", {}};
-    }
-
+std::optional<FileNamingPlan> LogService::BuildSealedFilePlan(
+    const std::string& file_type,
+    const std::string& file_suffix,
+    std::int64_t start_time_us,
+    std::optional<std::int64_t> end_time_us) const {
     const auto normalized_file_type = NormalizeFileType(file_type);
-    const auto start_time_us = NowMicroseconds();
-    const auto path =
-        BuildActivePath(normalized_file_type, file_suffix, start_time_us);
-    EnsureDirectory(path.parent_path());
-
-    std::ofstream stream(path, std::ios::app);
-    if (!stream.is_open()) {
-        return {false, "failed to create active file", path};
+    if (!IsFileTypeSafe(normalized_file_type) || file_suffix.empty() ||
+        start_time_us <= 0) {
+        return std::nullopt;
     }
 
-    active_session_ =
-        ActiveFileSession{path, normalized_file_type, file_suffix, start_time_us, false, 0};
-    return {true, "active file created", path};
+    FileNamingPlan plan;
+    plan.file_type = normalized_file_type;
+    plan.file_suffix = TrimLeadingDot(file_suffix);
+    plan.start_time_us = start_time_us;
+    plan.end_time_us =
+        std::max(end_time_us.value_or(NowMicroseconds()), start_time_us);
+    plan.path = BuildSealedPath(
+        plan.file_type, plan.file_suffix, plan.start_time_us, plan.end_time_us);
+    plan.sealed = true;
+    return plan;
 }
 
-OperationResult LogService::SwitchSegment() {
-    std::unique_lock<std::mutex> lock(mutex_);
-
-    if (writer_base_config_.has_value()) {
-        LoggerConfig base_config = *writer_base_config_;
-        lock.unlock();
-        return SwitchSegmentAndActivateWriter(base_config);
+std::optional<FileNamingPlan> LogService::BuildSealedFilePlanFromActivePath(
+    const std::filesystem::path& active_path,
+    std::optional<std::int64_t> end_time_us) const {
+    auto parsed = ParseFileNamingPlan(active_path);
+    if (!parsed.has_value() || parsed->sealed) {
+        return std::nullopt;
     }
-
-    auto* session = FindActiveSessionLocked();
-    if (session == nullptr) {
-        return {false, "active session not found", {}};
-    }
-    if (session->switching) {
-        return {false, "session is already switching", session->active_path};
-    }
-
-    const auto file_suffix = session->file_suffix;
-    const auto active_file_type = session->file_type;
-    session->switching = true;
-    auto seal_result = SealFileLocked(std::nullopt);
-    if (!seal_result.success) {
-        auto* rollback_session = FindActiveSessionLocked();
-        if (rollback_session != nullptr) {
-            rollback_session->switching = false;
-        }
-        switch_cv_.notify_all();
-        return seal_result;
-    }
-
-    auto create_result = CreateActiveFileLocked(active_file_type, file_suffix);
-    switch_cv_.notify_all();
-    return create_result;
+    return BuildSealedFilePlan(parsed->file_type,
+                               parsed->file_suffix,
+                               parsed->start_time_us,
+                               end_time_us);
 }
 
-OperationResult LogService::SwitchSegmentAndActivateWriter(
-    const LoggerConfig& base_config) {
-    std::unique_lock<std::mutex> lock(mutex_);
-
-    auto* session = FindActiveSessionLocked();
-    if (session == nullptr) {
-        return {false, "active session not found", {}};
-    }
-    if (session->switching) {
-        return {false, "session is already switching", session->active_path};
-    }
-
-    const auto file_suffix = session->file_suffix;
-    const auto active_file_type = session->file_type;
-    session->switching = true;
-
-    lock.unlock();
-    FlushWriterSafely();
-    lock.lock();
-
-    auto seal_result = SealFileLocked(std::nullopt);
-    if (!seal_result.success) {
-        auto* rollback_session = FindActiveSessionLocked();
-        if (rollback_session != nullptr) {
-            rollback_session->switching = false;
-        }
-        switch_cv_.notify_all();
-        return seal_result;
-    }
-
-    auto switch_result = CreateActiveFileLocked(active_file_type, file_suffix);
-    if (!switch_result.success) {
-        switch_cv_.notify_all();
-        return switch_result;
-    }
-
-    auto* new_session = FindActiveSessionLocked();
-    if (new_session == nullptr) {
-        switch_cv_.notify_all();
-        return {false, "active session not found after segment switch", {}};
-    }
-    new_session->switching = true;
-
-    auto config = BuildWriterConfigLocked(base_config);
-    if (!config.has_value()) {
-        new_session->switching = false;
-        switch_cv_.notify_all();
-        return {false, "active session not found", {}};
-    }
-    writer_base_config_ = base_config;
-
-    lock.unlock();
-    OperationResult activate_result;
-    try {
-        LogManager::Init(*config);
-        activate_result = {true,
-                           "writer activated",
-                           std::filesystem::path(config->root_dir) /
-                               config->file_name};
-    } catch (const std::exception& e) {
-        activate_result = {false, e.what(), config->root_dir};
-    } catch (...) {
-        activate_result = {false, "failed to activate writer", config->root_dir};
-    }
-    lock.lock();
-
-    auto* activated_session = FindActiveSessionLocked();
-    if (!activate_result.success) {
-        if (activated_session != nullptr) {
-            activated_session->switching = false;
-        }
-        switch_cv_.notify_all();
-        return activate_result;
-    }
-
-    auto flush_result = FlushBufferedLogsLocked();
-    if (!flush_result.success) {
-        flush_result.message += ", writer remains in switching state";
-        return flush_result;
-    }
-    writer_activated_ = true;
-    if (activated_session != nullptr) {
-        activated_session->switching = false;
-    }
-    switch_cv_.notify_all();
-    return activate_result;
+bool LogService::IsActiveFilePath(const std::filesystem::path& path) const {
+    const auto parsed = ParseFileNamingPlan(path);
+    return parsed.has_value() && !parsed->sealed;
 }
 
-OperationResult LogService::SealFile() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    FlushWriterSafely();
-    auto result = SealFileLocked(std::nullopt);
-    if (result.success) {
-        writer_activated_ = false;
-        writer_base_config_.reset();
-    }
-    switch_cv_.notify_all();
-    return result;
-}
+RecoveryTask LogService::RecoverActiveFiles(
+    const std::vector<std::filesystem::path>& active_paths,
+    std::int64_t end_time_us) const {
+    RecoveryTask task;
+    task.source_paths = active_paths;
+    task.message = "recovery failed";
 
-OperationResult LogService::ActivateWriter(const LoggerConfig& base_config) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    auto* current_session = FindActiveSessionLocked();
-    if (current_session == nullptr) {
-        return {false, "active session not found", {}};
-    }
-    auto activation_guard = PrepareWriterActivationLocked(current_session->file_type);
-    if (!activation_guard.success) {
-        return activation_guard;
-    }
-    auto config = BuildWriterConfigLocked(base_config);
-    if (!config.has_value()) {
-        return {false, "active session not found", {}};
-    }
-    writer_base_config_ = base_config;
-    auto* session = FindActiveSessionLocked();
-    if (session != nullptr) {
-        session->switching = true;
+    if (active_paths.empty() || end_time_us <= 0) {
+        task.message = "active_paths must not be empty and end_time_us must be > 0";
+        return task;
     }
 
-    lock.unlock();
-    OperationResult activate_result;
-    try {
-        LogManager::Init(*config);
-        activate_result = {true,
-                           "writer activated",
-                           std::filesystem::path(config->root_dir) /
-                               config->file_name};
-    } catch (const std::exception& e) {
-        activate_result = {false, e.what(), config->root_dir};
-    } catch (...) {
-        activate_result = {false, "failed to activate writer", config->root_dir};
-    }
-    lock.lock();
-
-    session = FindActiveSessionLocked();
-    if (!activate_result.success) {
-        if (session != nullptr) {
-            session->switching = false;
+    std::vector<std::filesystem::path> target_paths;
+    target_paths.reserve(active_paths.size());
+    for (const auto& active_path : active_paths) {
+        auto plan = BuildSealedFilePlanFromActivePath(active_path, end_time_us);
+        if (!plan.has_value()) {
+            task.message = "path is not a managed active file: " + active_path.string();
+            return task;
         }
-        switch_cv_.notify_all();
-        return activate_result;
+        target_paths.push_back(plan->path);
     }
 
-    auto flush_result = FlushBufferedLogsLocked();
-    if (!flush_result.success) {
-        flush_result.message += ", writer remains in switching state";
-        return flush_result;
-    }
-    writer_activated_ = true;
-    if (session != nullptr) {
-        session->switching = false;
-    }
-    switch_cv_.notify_all();
-    return activate_result;
-}
-
-OperationResult LogService::WriteLog(const std::string& module_name,
-                                     LogLevel level,
-                                     const std::string& payload) {
-    std::unique_lock<std::mutex> lock(mutex_);
-
-    if (!writer_activated_) {
-        return {false,
-                "writer is not activated for current active session, activate writer before writing",
-                {}};
-    }
-
-    while (true) {
-        auto* session = FindActiveSessionLocked();
-        if (session == nullptr) {
-            return {false, "active session not found", {}};
+    if (!ArePathsAvailable(target_paths)) {
+        bool found_variant = false;
+        for (std::uint32_t suffix = 1; suffix < 1000000; ++suffix) {
+            std::vector<std::filesystem::path> candidate_paths;
+            candidate_paths.reserve(target_paths.size());
+            for (const auto& target_path : target_paths) {
+                candidate_paths.push_back(BuildRecoveredVariantPath(target_path, suffix));
+            }
+            if (ArePathsAvailable(candidate_paths)) {
+                target_paths = std::move(candidate_paths);
+                found_variant = true;
+                break;
+            }
         }
-
-        if (!session->switching) {
-            return WriteLogLocked(module_name, level, payload);
+        if (!found_variant) {
+            task.message = "failed to find available recovered target paths";
+            return task;
         }
-
-        if (session->buffered_records < policy_.switch_buffer_limit) {
-            buffered_logs_.push_back({module_name, level, payload});
-            ++session->buffered_records;
-            return {true, "log buffered during segment switch", session->active_path};
-        }
-
-        if (!policy_.block_on_buffer_full) {
-            return {false, "switch buffer is full", session->active_path};
-        }
-
-        switch_cv_.wait(lock, [&]() {
-            auto* pending = FindActiveSessionLocked();
-            return pending == nullptr || !pending->switching;
-        });
     }
+
+    std::vector<std::pair<std::filesystem::path, std::filesystem::path>> renamed_paths;
+    std::error_code ec;
+    for (std::size_t index = 0; index < active_paths.size(); ++index) {
+        const auto& source_path = active_paths[index];
+        const auto& target_path = target_paths[index];
+        std::filesystem::rename(source_path, target_path, ec);
+        if (ec) {
+            for (auto rollback_it = renamed_paths.rbegin();
+                 rollback_it != renamed_paths.rend();
+                 ++rollback_it) {
+                std::error_code rollback_ec;
+                std::filesystem::rename(rollback_it->second, rollback_it->first, rollback_ec);
+            }
+            task.message = "failed to recover active file: " + ec.message();
+            return task;
+        }
+        renamed_paths.push_back({source_path, target_path});
+        task.recovered_paths.push_back(target_path);
+    }
+
+    task.success = true;
+    task.message = "recovery completed";
+    return task;
 }
 
 QueryResult LogService::QueryLogs(const QueryCondition& condition) {
-    std::unique_lock<std::mutex> lock(mutex_);
     QueryCondition normalized_condition = condition;
     if (!normalized_condition.file_type.empty()) {
         normalized_condition.file_type =
@@ -483,17 +312,11 @@ QueryResult LogService::QueryLogs(const QueryCondition& condition) {
     if (!ValidateQueryCondition(normalized_condition, &error_message)) {
         return {false, error_message, 0, {}};
     }
-    FlushWriterSafely();
-    auto segment_result = ForceSealIntersectedSessions(lock, normalized_condition);
-    if (!segment_result.success) {
-        return {false, segment_result.message, 0, {}};
-    }
-    return QueryLogsLocked(normalized_condition);
+    return QueryLogsImpl(normalized_condition);
 }
 
 PackageTask LogService::PackageLogs(const QueryCondition& condition,
                                     const std::filesystem::path& package_root_dir) {
-    std::unique_lock<std::mutex> lock(mutex_);
     QueryCondition normalized_condition = condition;
     if (!normalized_condition.file_type.empty()) {
         normalized_condition.file_type =
@@ -514,13 +337,7 @@ PackageTask LogService::PackageLogs(const QueryCondition& condition,
         return task;
     }
 
-    FlushWriterSafely();
-    auto segment_result = ForceSealIntersectedSessions(lock, normalized_condition);
-    if (!segment_result.success) {
-        task.message = segment_result.message;
-        return task;
-    }
-    auto query_result = QueryLogsLocked(normalized_condition);
+    auto query_result = QueryLogsImpl(normalized_condition);
     if (!query_result.success) {
         task.message = query_result.message;
         return task;
@@ -675,38 +492,8 @@ DeliveryTask LogService::UploadPackage(const std::filesystem::path& package_path
     return task;
 }
 
-std::optional<LoggerConfig> LogService::BuildWriterConfig(
-    const LoggerConfig& base_config) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    return BuildWriterConfigLocked(base_config);
-}
-
-std::optional<LoggerConfig> LogService::BuildWriterConfigLocked(
-    const LoggerConfig& base_config) {
-    const auto* session = FindActiveSessionLocked();
-    if (session == nullptr) {
-        return std::nullopt;
-    }
-
-    LoggerConfig config = base_config;
-    config.root_dir = session->active_path.parent_path().string();
-    config.file_name = session->active_path.filename().string();
-    writer_base_config_ = base_config;
-    return config;
-}
-
-std::optional<ActiveFileSession> LogService::GetActiveSession() const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    const auto* session = FindActiveSessionLocked();
-    if (session == nullptr) {
-        return std::nullopt;
-    }
-    return *session;
-}
-
 LogServiceState LogService::GetState() const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    return {active_session_, policy_, writer_activated_};
+    return {policy_};
 }
 
 std::string LogService::FormatTimestamp(std::int64_t time_us) {
@@ -779,11 +566,12 @@ std::optional<std::pair<std::int64_t, std::int64_t>> LogService::ParseTimeRange(
     }
 
     auto parse_part = [](const std::string& value) -> std::optional<std::int64_t> {
-        if (value.empty()) {
+        if (value.size() < 15) {
             return std::nullopt;
         }
+        const auto candidate = value.substr(0, 15);
         std::tm tm_value {};
-        std::istringstream iss(value);
+        std::istringstream iss(candidate);
         iss >> std::get_time(&tm_value, "%Y%m%d_%H%M%S");
         if (iss.fail()) {
             return std::nullopt;
@@ -806,6 +594,15 @@ std::optional<std::pair<std::int64_t, std::int64_t>> LogService::ParseTimeRange(
     return std::make_pair(*start, *end);
 }
 
+std::string LogService::NormalizeSuffix(const std::filesystem::path& path) {
+    const auto name = path.filename().string();
+    const auto dot_pos = name.find('.');
+    if (dot_pos == std::string::npos || dot_pos + 1 >= name.size()) {
+        return {};
+    }
+    return name.substr(dot_pos + 1);
+}
+
 std::filesystem::path LogService::BuildDirectoryPath(
     const std::string& file_type) const {
     return root_dir_ / NormalizeFileType(file_type);
@@ -826,18 +623,29 @@ std::filesystem::path LogService::BuildSealedPath(const std::string& file_type,
            BuildFileName(start_time_us, end_time_us, suffix);
 }
 
-ActiveFileSession* LogService::FindActiveSessionLocked() {
-    if (!active_session_.has_value()) {
-        return nullptr;
+std::optional<FileNamingPlan> LogService::ParseFileNamingPlan(
+    const std::filesystem::path& path) const {
+    const auto time_range = ParseTimeRange(path);
+    if (!time_range.has_value()) {
+        return std::nullopt;
     }
-    return &(*active_session_);
-}
 
-const ActiveFileSession* LogService::FindActiveSessionLocked() const {
-    if (!active_session_.has_value()) {
-        return nullptr;
+    std::error_code ec;
+    const auto relative_parent = std::filesystem::relative(path.parent_path(), root_dir_, ec);
+    if (ec) {
+        return std::nullopt;
     }
-    return &(*active_session_);
+
+    FileNamingPlan plan;
+    plan.path = path;
+    plan.file_type = relative_parent.empty() || relative_parent == "."
+                         ? std::string()
+                         : relative_parent.generic_string();
+    plan.file_suffix = NormalizeSuffix(path);
+    plan.start_time_us = time_range->first;
+    plan.sealed = time_range->second != std::numeric_limits<std::int64_t>::max();
+    plan.end_time_us = plan.sealed ? time_range->second : 0;
+    return plan;
 }
 
 void LogService::EnsureDirectory(const std::filesystem::path& path) const {
@@ -872,53 +680,7 @@ bool LogService::ValidateQueryCondition(const QueryCondition& condition,
     return true;
 }
 
-void LogService::FlushWriterSafely() const {
-    try {
-        LogManager::Flush();
-    } catch (...) {
-    }
-}
-
-OperationResult LogService::WriteLogLocked(const std::string& module_name,
-                                           LogLevel level,
-                                           const std::string& payload) {
-    const auto* session = FindActiveSessionLocked();
-    if (session == nullptr) {
-        return {false, "active session not found", {}};
-    }
-
-    try {
-        LogManager::WriteRaw(module_name, level, payload);
-    } catch (const std::exception& e) {
-        return {false, e.what(), session->active_path};
-    } catch (...) {
-        return {false, "failed to write log", session->active_path};
-    }
-    return {true, "log written", session->active_path};
-}
-
-OperationResult LogService::FlushBufferedLogsLocked() {
-    auto* session = FindActiveSessionLocked();
-    if (session == nullptr) {
-        return {false, "active session not found", {}};
-    }
-
-    for (const auto& entry : buffered_logs_) {
-        try {
-            LogManager::WriteRaw(entry.module_name, entry.level, entry.payload);
-        } catch (const std::exception& e) {
-            return {false, e.what(), session->active_path};
-        } catch (...) {
-            return {false, "failed to flush buffered logs", session->active_path};
-        }
-    }
-
-    buffered_logs_.clear();
-    session->buffered_records = 0;
-    return {true, "buffered logs flushed", session->active_path};
-}
-
-QueryResult LogService::QueryLogsLocked(const QueryCondition& condition) const {
+QueryResult LogService::QueryLogsImpl(const QueryCondition& condition) const {
     QueryResult result;
     result.success = true;
 
@@ -980,86 +742,6 @@ QueryResult LogService::QueryLogsLocked(const QueryCondition& condition) const {
     result.total_files = result.files.size();
     result.message = "query completed";
     return result;
-}
-
-OperationResult LogService::ForceSealIntersectedSessions(
-    std::unique_lock<std::mutex>& lock, const QueryCondition& condition) {
-    const auto effective_end = condition.end_time_us == 0
-                                   ? std::numeric_limits<std::int64_t>::max()
-                                   : condition.end_time_us;
-    if (!active_session_.has_value()) {
-        return {true, "intersected sessions processed", {}};
-    }
-    if (!condition.file_type.empty() && active_session_->file_type != condition.file_type) {
-        return {true, "intersected sessions processed", {}};
-    }
-    if (!Intersects(active_session_->start_time_us,
-                    std::numeric_limits<std::int64_t>::max(),
-                    condition.start_time_us,
-                    effective_end)) {
-        return {true, "intersected sessions processed", {}};
-    }
-    if (writer_base_config_.has_value()) {
-        LoggerConfig base_config = *writer_base_config_;
-        lock.unlock();
-        auto switch_result = SwitchSegmentAndActivateWriter(base_config);
-        lock.lock();
-        if (!switch_result.success) {
-            return switch_result;
-        }
-        return {true, "intersected sessions processed", {}};
-    }
-
-    auto seal_result = SealFileLocked(std::nullopt);
-    if (!seal_result.success) {
-        return seal_result;
-    }
-    return {true, "intersected sessions processed", {}};
-}
-
-OperationResult LogService::PrepareWriterActivationLocked(
-    const std::string& file_type) {
-    if (!active_session_.has_value()) {
-        return {true, "writer activation allowed", {}};
-    }
-    if (active_session_->file_type != file_type) {
-        return {false,
-                "service instance is bound to file_type '" + active_session_->file_type +
-                    "', create another LogService process or instance for a different file_type",
-                {}};
-    }
-    if (!writer_activated_) {
-        return {true, "writer activation allowed", {}};
-    }
-
-    if (active_session_->file_type == file_type) {
-        return {true, "writer activation allowed", {}};
-    }
-
-    return {false, "writer activation rejected", {}};
-}
-
-OperationResult LogService::SealFileLocked(
-    std::optional<std::int64_t> explicit_end_time) {
-    auto* session = FindActiveSessionLocked();
-    if (session == nullptr) {
-        return {false, "active session not found", {}};
-    }
-
-    const auto end_time_us =
-        std::max(explicit_end_time.value_or(NowMicroseconds()), session->start_time_us);
-    const auto sealed_path = BuildSealedPath(
-        session->file_type, session->file_suffix, session->start_time_us, end_time_us);
-
-    std::error_code ec;
-    std::filesystem::rename(session->active_path, sealed_path, ec);
-    if (ec) {
-        return {false, ec.message(), sealed_path};
-    }
-
-    active_session_.reset();
-
-    return {true, "file sealed", sealed_path};
 }
 
 }  // namespace naviai::log

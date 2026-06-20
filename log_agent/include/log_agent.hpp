@@ -25,6 +25,7 @@ class LogAgent {
     LogAgentResult ScanNow();
     LogAgentResult RecoverNow();
     LogAgentResult CompressNow();
+    LogAgentResult DrainNow();
     LogAgentResult CleanupNow(bool dry_run = false);
 
     LogAgentState GetState() const;
@@ -53,6 +54,7 @@ class LogAgent {
                               ParsedFileName* parsed);
     static std::string BuildSessionId(const std::filesystem::path& path,
                                       std::int64_t start_time_us);
+    static bool ShouldCompressFile(const LogFileEntry& file);
     static bool CompressFileToGzip(const std::filesystem::path& source_path,
                                    bool delete_raw_after_compress);
     static bool ReadLastTimestampFromTextFile(const std::filesystem::path& path,

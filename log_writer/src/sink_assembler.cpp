@@ -57,11 +57,7 @@ std::vector<spdlog::sink_ptr> SinkAssembler::Build(const LoggerConfig& config) {
 }
 
 void SinkAssembler::ApplyErrorHandler(const std::vector<spdlog::sink_ptr>& sinks) {
-    for (const auto& sink : sinks) {
-        sink->set_error_handler([](const std::string& message) {
-            ReportInternalError("sink", message);
-        });
-    }
+    (void)sinks;
 }
 
 std::string SinkAssembler::BuildBasicFilePath(const LoggerConfig& config) {
