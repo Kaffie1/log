@@ -1,1 +1,0 @@
-/usr/bin/c++     CMakeFiles/log_l3_demo.dir/examples/demo.cpp.o  -o log_l3_demo  liblog_l3.a ../log_service/liblog_service.a ../log_writer/liblog_writer.a /usr/lib/aarch64-linux-gnu/libspdlog.so.1.5.0 /usr/lib/aarch64-linux-gnu/libfmt.a /usr/lib/aarch64-linux-gnu/libz.so ../log_agent/liblog_agent.a /usr/lib/aarch64-linux-gnu/libz.so -lpthread 

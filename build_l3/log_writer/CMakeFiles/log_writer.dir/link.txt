@@ -1,2 +1,0 @@
-/usr/bin/ar qc liblog_writer.a  CMakeFiles/log_writer.dir/src/error_handler.cpp.o CMakeFiles/log_writer.dir/src/log_manager.cpp.o CMakeFiles/log_writer.dir/src/logger_registry.cpp.o CMakeFiles/log_writer.dir/src/module_registry.cpp.o CMakeFiles/log_writer.dir/src/record_builder.cpp.o CMakeFiles/log_writer.dir/src/sink_assembler.cpp.o CMakeFiles/log_writer.dir/src/level_mapper.cpp.o CMakeFiles/log_writer.dir/src/formatter.cpp.o
-/usr/bin/ranlib liblog_writer.a

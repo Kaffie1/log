@@ -1,2 +1,0 @@
-/usr/bin/ar qc liblog_l3_test_support.a  CMakeFiles/log_l3_test_support.dir/l3/l3_support.cpp.o
-/usr/bin/ranlib liblog_l3_test_support.a

@@ -1,2 +1,0 @@
-/usr/bin/ar qc liblog_service.a  CMakeFiles/log_service.dir/src/log_service_naming.cpp.o CMakeFiles/log_service.dir/src/log_service_recovery.cpp.o CMakeFiles/log_service.dir/src/log_service_query.cpp.o CMakeFiles/log_service.dir/src/log_service_package.cpp.o
-/usr/bin/ranlib liblog_service.a
