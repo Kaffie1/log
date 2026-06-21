@@ -2,6 +2,7 @@
 
 #include "error_handler.hpp"
 #include "level_mapper.hpp"
+#include "sink_assembler.hpp"
 
 #include <stdexcept>
 #include <utility>
@@ -17,11 +18,9 @@ LoggerRegistry::~LoggerRegistry() = default;
 void LoggerRegistry::Configure(
     const LoggerConfig& config,
     std::shared_ptr<spdlog::details::thread_pool> thread_pool,
-    std::vector<spdlog::sink_ptr> sinks,
     std::shared_ptr<FormatterSelector> formatter_selector) {
     config_ = config;
     thread_pool_ = std::move(thread_pool);
-    sinks_ = std::move(sinks);
     formatter_selector_ = std::move(formatter_selector);
     loggers_.clear();
 }
@@ -35,7 +34,6 @@ void LoggerRegistry::Reset() {
         ReportInternalError("logger_reset", "unknown error");
     }
     loggers_.clear();
-    sinks_.clear();
     formatter_selector_.reset();
     thread_pool_.reset();
 }
@@ -96,7 +94,8 @@ std::shared_ptr<spdlog::logger> LoggerRegistry::GetOrCreateLogger(
         return it->second;
     }
 
-    if (sinks_.empty()) {
+    auto sinks = SinkAssembler::Build(config_);
+    if (sinks.empty()) {
         throw std::runtime_error("no sinks configured");
     }
 
@@ -108,13 +107,13 @@ std::shared_ptr<spdlog::logger> LoggerRegistry::GetOrCreateLogger(
         }
         logger = std::make_shared<spdlog::async_logger>(
             module_name,
-            sinks_.begin(),
-            sinks_.end(),
+            sinks.begin(),
+            sinks.end(),
             thread_pool_,
             ToSpdlogOverflowPolicy(config_.async_overflow_policy));
     } else {
         logger =
-            std::make_shared<spdlog::logger>(module_name, sinks_.begin(), sinks_.end());
+            std::make_shared<spdlog::logger>(module_name, sinks.begin(), sinks.end());
     }
 
     const auto spdlog_level = ToSpdlogLevel(logger_level);

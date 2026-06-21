@@ -155,17 +155,13 @@ std::string LogService::NormalizeFileType(const std::string& file_type) {
 }
 
 bool LogService::IsFileTypeSafe(const std::string& file_type) {
-    if (file_type.empty()) {
-        return false;
-    }
-
     const std::filesystem::path value(file_type);
     if (value.is_absolute()) {
         return false;
     }
 
     const auto normalized = NormalizeFileType(file_type);
-    if (normalized.empty() || normalized == "." || normalized.front() == '/') {
+    if (normalized == "." || (!normalized.empty() && normalized.front() == '/')) {
         return false;
     }
 

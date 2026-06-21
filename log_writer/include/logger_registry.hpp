@@ -19,7 +19,6 @@ class LoggerRegistry {
 
     void Configure(const LoggerConfig& config,
                    std::shared_ptr<spdlog::details::thread_pool> thread_pool,
-                   std::vector<spdlog::sink_ptr> sinks,
                    std::shared_ptr<FormatterSelector> formatter_selector);
     void Reset();
     void SetLevel(LogLevel level);
@@ -33,7 +32,6 @@ class LoggerRegistry {
 
     LoggerConfig config_;
     std::shared_ptr<spdlog::details::thread_pool> thread_pool_;
-    std::vector<spdlog::sink_ptr> sinks_;
     std::shared_ptr<FormatterSelector> formatter_selector_;
     std::unordered_map<std::string, std::shared_ptr<spdlog::logger>> loggers_;
 };

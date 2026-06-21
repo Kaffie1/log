@@ -4,6 +4,8 @@
 #include <cctype>
 #include <fstream>
 
+#include <zlib.h>
+
 namespace naviai::log {
 namespace {
 
@@ -55,18 +57,37 @@ bool MatchesLogLevel(const std::filesystem::path& path,
     }
 
     const auto level_name = NormalizeLevelName(raw_level_name);
+    const auto text_token = "[" + level_name + "]";
+    const auto json_token = "\"level\":\"" + level_name + "\"";
+    auto matches_line = [&](const std::string& line) {
+        return line.find(text_token) != std::string::npos ||
+               line.find(json_token) != std::string::npos;
+    };
+
+    if (path.extension() == ".gz") {
+        gzFile stream = gzopen(path.string().c_str(), "rb");
+        if (stream == nullptr) {
+            return false;
+        }
+        char buffer[4096];
+        while (gzgets(stream, buffer, sizeof(buffer)) != nullptr) {
+            if (matches_line(buffer)) {
+                gzclose(stream);
+                return true;
+            }
+        }
+        gzclose(stream);
+        return false;
+    }
+
     std::ifstream stream(path);
     if (!stream.is_open()) {
         return false;
     }
 
-    const auto text_token = "[" + level_name + "]";
-    const auto json_token = "\"level\":\"" + level_name + "\"";
-
     std::string line;
     while (std::getline(stream, line)) {
-        if (line.find(text_token) != std::string::npos ||
-            line.find(json_token) != std::string::npos) {
+        if (matches_line(line)) {
             return true;
         }
     }
@@ -79,18 +100,37 @@ bool MatchesModuleName(const std::filesystem::path& path,
         return true;
     }
 
+    const auto text_token = "] [" + module_name + "]";
+    const auto json_token = "\"module\":\"" + module_name + "\"";
+    auto matches_line = [&](const std::string& line) {
+        return line.find(text_token) != std::string::npos ||
+               line.find(json_token) != std::string::npos;
+    };
+
+    if (path.extension() == ".gz") {
+        gzFile stream = gzopen(path.string().c_str(), "rb");
+        if (stream == nullptr) {
+            return false;
+        }
+        char buffer[4096];
+        while (gzgets(stream, buffer, sizeof(buffer)) != nullptr) {
+            if (matches_line(buffer)) {
+                gzclose(stream);
+                return true;
+            }
+        }
+        gzclose(stream);
+        return false;
+    }
+
     std::ifstream stream(path);
     if (!stream.is_open()) {
         return false;
     }
 
-    const auto text_token = "] [" + module_name + "]";
-    const auto json_token = "\"module\":\"" + module_name + "\"";
-
     std::string line;
     while (std::getline(stream, line)) {
-        if (line.find(text_token) != std::string::npos ||
-            line.find(json_token) != std::string::npos) {
+        if (matches_line(line)) {
             return true;
         }
     }

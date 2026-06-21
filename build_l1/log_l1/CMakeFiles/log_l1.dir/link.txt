@@ -1,0 +1,2 @@
+/usr/bin/ar qc liblog_l1.a  CMakeFiles/log_l1.dir/src/monitor_module.cpp.o CMakeFiles/log_l1.dir/src/log_l1.cpp.o
+/usr/bin/ranlib liblog_l1.a

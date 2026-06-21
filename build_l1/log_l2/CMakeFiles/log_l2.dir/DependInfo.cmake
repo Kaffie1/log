@@ -1,0 +1,39 @@
+# The set of languages for which implicit dependencies are needed:
+set(CMAKE_DEPENDS_LANGUAGES
+  "CXX"
+  )
+# The set of files for implicit dependencies of each language:
+set(CMAKE_DEPENDS_CHECK_CXX
+  "/workspaces/log/log_l2/src/business_data.cpp" "/workspaces/log/build_l1/log_l2/CMakeFiles/log_l2.dir/src/business_data.cpp.o"
+  "/workspaces/log/log_l2/src/large_data.cpp" "/workspaces/log/build_l1/log_l2/CMakeFiles/log_l2.dir/src/large_data.cpp.o"
+  "/workspaces/log/log_l2/src/navigation_action.cpp" "/workspaces/log/build_l1/log_l2/CMakeFiles/log_l2.dir/src/navigation_action.cpp.o"
+  "/workspaces/log/log_l2/src/operation.cpp" "/workspaces/log/build_l1/log_l2/CMakeFiles/log_l2.dir/src/operation.cpp.o"
+  "/workspaces/log/log_l2/src/recorder.cpp" "/workspaces/log/build_l1/log_l2/CMakeFiles/log_l2.dir/src/recorder.cpp.o"
+  "/workspaces/log/log_l2/src/ros_topic.cpp" "/workspaces/log/build_l1/log_l2/CMakeFiles/log_l2.dir/src/ros_topic.cpp.o"
+  "/workspaces/log/log_l2/src/static_data.cpp" "/workspaces/log/build_l1/log_l2/CMakeFiles/log_l2.dir/src/static_data.cpp.o"
+  )
+set(CMAKE_CXX_COMPILER_ID "GNU")
+
+# Preprocessor definitions for this target.
+set(CMAKE_TARGET_DEFINITIONS_CXX
+  "FMT_LOCALE"
+  "SPDLOG_COMPILED_LIB"
+  "SPDLOG_FMT_EXTERNAL"
+  )
+
+# The include file search paths:
+set(CMAKE_CXX_TARGET_INCLUDE_PATH
+  "../log_l2/include"
+  "../log_l2/.."
+  "../log_service/include"
+  "../log_writer/include"
+  )
+
+# Targets to which this target links.
+set(CMAKE_TARGET_LINKED_INFO_FILES
+  "/workspaces/log/build_l1/log_service/CMakeFiles/log_service.dir/DependInfo.cmake"
+  "/workspaces/log/build_l1/log_writer/CMakeFiles/log_writer.dir/DependInfo.cmake"
+  )
+
+# Fortran module output directory.
+set(CMAKE_Fortran_TARGET_MODULE_DIR "")

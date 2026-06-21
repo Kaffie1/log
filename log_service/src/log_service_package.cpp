@@ -83,6 +83,12 @@ PackageTask LogService::PackageLogs(const QueryCondition& condition,
         return task;
     }
 
+    auto preparation = PrepareFilesForPackaging(query_result.files);
+    if (!preparation.success) {
+        task.message = preparation.message;
+        return task;
+    }
+
     task.output_path = package_root_dir / task.task_id;
     task.manifest_path = task.output_path / "manifest.txt";
     EnsureDirectory(task.output_path);
@@ -94,7 +100,7 @@ PackageTask LogService::PackageLogs(const QueryCondition& condition,
     }
 
     manifest << "task_id=" << task.task_id << '\n';
-    manifest << "file_count=" << query_result.total_files << '\n';
+    manifest << "file_count=" << preparation.prepared_files.size() << '\n';
     manifest << "package_root=" << task.output_path.string() << '\n';
     manifest << "query_file_type=" << QuoteOrAny(normalized_condition.file_type)
              << '\n';
@@ -108,7 +114,7 @@ PackageTask LogService::PackageLogs(const QueryCondition& condition,
              << '\n';
     manifest << "query_end_time_us=" << normalized_condition.end_time_us << '\n';
 
-    for (const auto& file : query_result.files) {
+    for (const auto& file : preparation.prepared_files) {
         std::error_code relative_ec;
         auto relative_path =
             std::filesystem::relative(file, root_dir_, relative_ec);

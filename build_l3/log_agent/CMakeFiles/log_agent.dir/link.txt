@@ -1,0 +1,2 @@
+/usr/bin/ar qc liblog_agent.a  CMakeFiles/log_agent.dir/src/log_agent.cpp.o CMakeFiles/log_agent.dir/src/log_agent_scan.cpp.o CMakeFiles/log_agent.dir/src/log_agent_recovery.cpp.o CMakeFiles/log_agent.dir/src/log_agent_compressor.cpp.o CMakeFiles/log_agent.dir/src/log_agent_cleanup.cpp.o
+/usr/bin/ranlib liblog_agent.a

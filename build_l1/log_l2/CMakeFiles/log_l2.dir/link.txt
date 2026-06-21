@@ -1,0 +1,2 @@
+/usr/bin/ar qc liblog_l2.a  CMakeFiles/log_l2.dir/src/ros_topic.cpp.o CMakeFiles/log_l2.dir/src/navigation_action.cpp.o CMakeFiles/log_l2.dir/src/business_data.cpp.o CMakeFiles/log_l2.dir/src/static_data.cpp.o CMakeFiles/log_l2.dir/src/large_data.cpp.o CMakeFiles/log_l2.dir/src/operation.cpp.o CMakeFiles/log_l2.dir/src/recorder.cpp.o
+/usr/bin/ranlib liblog_l2.a

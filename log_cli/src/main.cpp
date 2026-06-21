@@ -1,6 +1,9 @@
 #include "log_agent/include/log_agent.hpp"
-#include "log_l2/include/operation.hpp"
 #include "log_service/include/log_service_naming.hpp"
+
+#ifdef LOG_CLI_ENABLE_L2_PACKAGE
+#include "log_l2/include/operation.hpp"
+#endif
 
 #include <cstdlib>
 #include <exception>
@@ -34,9 +37,12 @@ void PrintUsage() {
         << "                [--module <name>] [--level <level>] [--start <us|yymmdd_HHMMSS>] [--end <us|yymmdd_HHMMSS>]\n"
         << "  log_cli package --root <dir> --package-root <dir> [--file-type <type>] \n"
         << "                  [--suffix <suffix>] [--module <name>] [--level <level>] \n"
-        << "                  [--start <us|yymmdd_HHMMSS>] [--end <us|yymmdd_HHMMSS>]\n"
+        << "                  [--start <us|yymmdd_HHMMSS>] [--end <us|yymmdd_HHMMSS>] [--duration <seconds>]\n";
+#ifdef LOG_CLI_ENABLE_L2_PACKAGE
+    std::cout
         << "  log_cli l2-package --root <dir> --start <us|yymmdd_HHMMSS> "
            "(--end <us|yymmdd_HHMMSS> | --duration <seconds>) [--output <path>]\n";
+#endif
 }
 
 ParsedArgs ParseArgs(int argc, char** argv) {
@@ -141,7 +147,24 @@ bool HasFlag(const ParsedArgs& args, const std::string& key) {
 naviai::log::QueryCondition BuildQueryCondition(const ParsedArgs& args) {
     naviai::log::QueryCondition condition;
     condition.start_time_us = ParseInt64Option(args, "start", 0);
-    condition.end_time_us = ParseInt64Option(args, "end", 0);
+    const auto end_value = FindOption(args, "end");
+    const auto duration_value = FindOption(args, "duration");
+    if (end_value.has_value() && duration_value.has_value()) {
+        throw std::invalid_argument("--end and --duration cannot both be set");
+    }
+    if (end_value.has_value()) {
+        condition.end_time_us = ParseTimeValue(*end_value);
+    } else if (duration_value.has_value()) {
+        const auto duration_seconds = std::stoll(*duration_value);
+        if (duration_seconds <= 0) {
+            throw std::invalid_argument("--duration must be positive seconds");
+        }
+        if (condition.start_time_us <= 0) {
+            throw std::invalid_argument("--start must be set when --duration is used");
+        }
+        condition.end_time_us =
+            condition.start_time_us + duration_seconds * 1000000LL;
+    }
     condition.file_type = FindOption(args, "file-type").value_or("");
     condition.module_name = FindOption(args, "module").value_or("");
     condition.log_level = FindOption(args, "level").value_or("");
@@ -238,6 +261,7 @@ int RunPackageCommand(const ParsedArgs& args) {
 }
 
 int RunL2PackageCommand(const ParsedArgs& args) {
+#ifdef LOG_CLI_ENABLE_L2_PACKAGE
     naviai::log::L2PackageOptions options;
     options.root_dir = RequireOption(args, "root");
     options.start_time_us = ParseInt64Option(args, "start");
@@ -265,6 +289,10 @@ int RunL2PackageCommand(const ParsedArgs& args) {
     const auto archive_path = naviai::log::l2_log::PackageRecords(options);
     std::cout << "archive_path=" << archive_path << '\n';
     return 0;
+#else
+    (void)args;
+    throw std::invalid_argument("l2-package is unavailable in this build");
+#endif
 }
 
 }  // namespace

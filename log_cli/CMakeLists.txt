@@ -16,5 +16,9 @@ target_include_directories(log_cli PRIVATE
 target_link_libraries(log_cli PRIVATE
     log_agent
     log_service
-    log_l2
 )
+
+if(NOT CMAKE_DISABLE_FIND_PACKAGE_catkin)
+    target_compile_definitions(log_cli PRIVATE LOG_CLI_ENABLE_L2_PACKAGE=1)
+    target_link_libraries(log_cli PRIVATE log_l2)
+endif()

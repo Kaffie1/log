@@ -87,7 +87,6 @@ void BuildRuntime(const LoggerConfig& config) {
     state.logger_registry.Configure(
         state.config,
         state.thread_pool,
-        SinkAssembler::Build(state.config),
         state.formatter_selector);
 
     state.stop_flush_worker = false;
